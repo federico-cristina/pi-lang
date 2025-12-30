@@ -1,2 +1,3 @@
-# pi-lang
-The Pi programming language
+# The Pi programming language
+
+> **NOTE**: A programming language under development... Coming soon!

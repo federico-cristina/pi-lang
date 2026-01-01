@@ -1,0 +1,117 @@
+#include "pi/pi.h"
+
+#ifndef PI_VERSION
+/**
+ * @brief   A string representing the current version of the Pi language.
+ * 
+ * @note    This symbolic constant is usually defined outside this file; the version shown
+ *          below is therefore less specific than the one defined outside (for example, by
+ *          CMake).
+ * 
+ *          It is kept only to cover the case where the version is not defined, but its
+ *          existence is required (a practically impossible case, but covered).
+ */
+#   define PI_VERSION "0.7"
+#endif
+
+#include <stdio.h>
+
+/* =---- Driver ------------------------------------------------= */
+
+/** No errors: the execution was successful. */
+#define PI_EXIT_SUCCESS 0
+/** Error: Execution ended with a failed result. */
+#define PI_EXIT_FAILURE 1
+/** Error: Execution reached a point in the code that is invalid or not yet implemented. */
+#define PI_EXIT_INVALID 2
+/** Fatal error: execution did not reach completion, it was aborted. */
+#define PI_EXIT_ABORTED 3
+
+/**
+ * @brief   This function runs the program in REPL (Read-Eval-Print-Loop) mode.
+ * 
+ * @return  This function returns an integer representing the final state of the program
+ *          after its call.
+ */
+static int pi_Repl(void)
+{
+    bool
+        /* This flag is raised during the execution of the main loop */
+        keepRunning = true,
+        /* This flag is raised when the error handling point is set */
+        recoverySet = false;
+
+    /* Prints initial message */
+    puts(
+        PI_GRAY "-- Welcome to Pi-" PI_VERSION PI_RESET "\n"
+    );
+
+    /* The buffer where the read line of text will be stored */
+    char line[BUFSIZ] = "";
+
+    FILE
+        /* Output stream register */
+        *const out = stdout,
+        /* Input stream register */
+        *const in = stdin;
+
+    do
+    {
+        /* Prints default prompt */
+        fputs(">>> ", out);
+
+        /* When Ctrl-Z is typed the execution is aborted */
+        if (!fgets(line, BUFSIZ, in))
+            break;
+
+        /*
+        
+        TODO: Eval and Print phases of REPL
+
+         */
+    } while (keepRunning);
+
+    return PI_EXIT_SUCCESS;
+}
+
+/**
+ * @brief   This function runs the program in 'command line' mode, interpreting
+ *          and executing the specified command line arguments.
+ * 
+ * @param     argc  The number of arguments passed per command line (i.e., the number of
+ *                  elements inside `argv`).
+ * @param[in] argv  An array of strings representing the tokens passed as command line
+ *                  arguments.
+ * 
+ * @return  This function returns an integer representing the final state of the program
+ *          after its call.
+ */
+static int pi_Main(const int argc, const char *const argv[])
+{
+    /* Not implemented yet! */
+    return PI_EXIT_INVALID;
+}
+
+/**
+ * +---- EntryPoint -----------------------+
+ */
+
+int main(const int argc, const char *const argv[])
+{
+    int exitCode;
+
+    /* Configures the system before execution */
+    pi_InitSystem();
+
+    if (argc < 2)
+        exitCode = pi_Repl();
+    else
+        exitCode = pi_Main(argc, argv);
+
+    /* Resets system configuration after execution */
+    pi_FreeSystem();
+
+    return exitCode;
+}
+
+/* =------------------------------------------------------------= */

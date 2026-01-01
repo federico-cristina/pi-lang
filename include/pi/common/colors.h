@@ -16,8 +16,8 @@
  *              limitations under the License.
  */
 
-#ifndef _PI_COLORS_H
-#define _PI_COLORS_H
+#ifndef _PI_COMMON_COLORS_H
+#define _PI_COMMON_COLORS_H
 
 /* =---- Output Colors and Styles ------------------------------= */
 

@@ -21,6 +21,10 @@
 
 /* =---- Output Colors and Styles ------------------------------= */
 
+/**
+ * +---- Colors ---------------------------+
+ */
+
 #ifndef PI_Color
 /**
  * @brief   This macro, when the `PI_USE_COLORS` option is enabled, constructs a string
@@ -88,6 +92,10 @@
 #define PI_INVISIBLE                PI_Color("8")
 /* Adds removed style to text. */
 #define PI_REMOVED                  PI_Color("9")
+
+/**
+ * +---- Stylized Colors ------------------+
+ */
 
 #ifndef PI_StylizedColor
 /**
@@ -381,6 +389,18 @@
 #define PI_REMOVED_DARK_MAGENTA      PI_StylizedColor("9", "35")
 /* Set the text color to removed dark cyan. */
 #define PI_REMOVED_DARK_CYAN         PI_StylizedColor("9", "36")
+
+/**
+ * +---- Specific Colors ------------------+
+ */
+
+/* Set the colors of a single quoted char literal. */
+#define PI_CharColor(c)             PI_DARK_YELLOW "'" c "'" PI_RESET
+/* Set the colors of a single quoted escape sequence literal. */
+#define PI_EscapedCharColor(c)      PI_DARK_YELLOW "'" PI_YELLOW c PI_DARK_YELLOW "'" PI_RESET
+
+/* Set the colors of an erroneous slice of text. */
+#define PI_ErroneousColor(text)     PI_RED text PI_RESET
 
 /* =------------------------------------------------------------= */
 

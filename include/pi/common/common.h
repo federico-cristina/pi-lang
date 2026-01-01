@@ -118,6 +118,7 @@
 /* Include C99 useful data types */
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdlib.h>
 
 /* Include C99 fixed-width int types PRIs */
 #include <inttypes.h>

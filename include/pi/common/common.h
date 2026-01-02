@@ -171,7 +171,7 @@ size_t pi_GetPageSize(void);
 /**
  * @brief   Title for info-dumping/debugging messages and logs.
  */
-#define PI_TITLE_INFO           PI_BOLD_DARK_CYAN "info" PI_RESET
+#define PI_TITLE_INFO           PI_DARK_CYAN "info" PI_RESET
 /**
  * @brief   Title for warning messages.
  */
@@ -183,7 +183,7 @@ size_t pi_GetPageSize(void);
 /**
  * @brief   Title for fatal error messages.
  */
-#define PI_TITLE_FATAL_ERROR    PI_BOLD_DARK_RED "fatal error" PI_RESET
+#define PI_TITLE_FATAL_ERROR    PI_DARK_RED "fatal error" PI_RESET
 
 /**
  * @brief   Prints a warning message.

@@ -401,6 +401,8 @@
 
 /* Set the colors of an erroneous slice of text. */
 #define PI_ErroneousColor(text)     PI_RED text PI_RESET
+/* Set the colors of an erroneous slice of text. */
+#define PI_ErroneousColor2(text)    PI_BOLD_RED text PI_RESET
 
 /* =------------------------------------------------------------= */
 

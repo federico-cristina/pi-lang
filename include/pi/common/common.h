@@ -148,6 +148,15 @@ void pi_InitSystem(void);
 void pi_FreeSystem(void);
 
 /**
+ * +---- System Info ----------------------+
+ */
+
+/**
+ * @brief   This function returns the size of a system page of memory. 
+ */
+size_t pi_GetPageSize(void);
+
+/**
  * +---- Internal Errors Handling ---------+
  */
 

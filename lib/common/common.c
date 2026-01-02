@@ -260,6 +260,15 @@ void pi_FreeSystem(void)
 }
 
 /**
+ * +---- System Info ----------------------+
+ */
+
+size_t pi_GetPageSize(void)
+{
+    return pi_SystemInfo.pageSize;
+}
+
+/**
  * +---- Internal Errors Handling ---------+
  */
 

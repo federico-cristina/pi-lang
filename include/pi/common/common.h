@@ -369,6 +369,18 @@ void *pi_resize(void *const block, const size_t oldSize, const size_t newSize);
     ((type *)pi_resize((void *)(block), sizeof(type) * (oldSize), sizeof(type) * (newSize)))
 #endif
 
+/**
+ * +---------------------------------------+
+ */
+
+#ifndef PI_HasFlag
+/**
+ * @brief   Check if a binary flagged value has a specific flag set.
+ */
+#   define PI_HasFlag(x, flag) \
+    (((x) & (flag)) != 0)
+#endif
+
 /* =------------------------------------------------------------= */
 
 PI_C_HEADER_END

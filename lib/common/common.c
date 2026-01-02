@@ -188,8 +188,8 @@ void pi_InitSystem(void)
         outFlags |= ENABLE_PROCESSED_OUTPUT | ENABLE_VIRTUAL_TERMINAL_PROCESSING;
 
         /* Enables colors and fonts processing in Win32 cmd output and error streams */
-        SetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE), outFlags);
-        SetConsoleMode(GetStdHandle(STD_ERROR_HANDLE), outFlags);
+        SetConsoleMode(stdOut, outFlags);
+        SetConsoleMode(stdErr, outFlags);
     }
 
     SYSTEM_INFO sysInfo;

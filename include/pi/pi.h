@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 /**
  * @brief       This file contains all the directives for including the various main
@@ -26,7 +26,30 @@
 #ifndef _PI_H
 #define _PI_H
 
-/* Includes shared definitions */
+/* Include shared definitions */
 #include "pi/common/common.h"
+
+/**
+ * +---- Stack-VM Headers -----------------+
+ */
+
+/* Include stack-oriented opcode definitions */
+#include "pi/svm/opcode.h"
+/* Include chunks of stack-oriented bytecode */
+#include "pi/svm/chunk.h"
+
+/* Include stack-oriented bytecode disassembler */
+#include "pi/svm/disasm.h"
+
+/**
+ * +---- Compiler Headers -----------------+
+ */
+
+/* Include streams of source code management */
+#include "pi/compiler/source.h"
+
+/**
+ * +---------------------------------------+
+ */
 
 #endif

@@ -404,6 +404,9 @@
 /* Set the colors of an erroneous slice of text. */
 #define PI_ErroneousColor2(text)    PI_BOLD_RED text PI_RESET
 
+/* Set the colors of an invalid hexadecimal literal. */
+#define PI_InvalidHexColor(hex)     PI_BLUE "'" PI_DARK_CYAN hex PI_BLUE "'" PI_RESET
+
 /* =------------------------------------------------------------= */
 
 #endif

@@ -104,7 +104,7 @@
  *          of the text when printed in the terminal.
  */
 #   if PI_USE_COLORS
-#       define PI_StylizedColor(styleCode, colorCode) "\033[" styleCode "; " colorCode "m"
+#       define PI_StylizedColor(styleCode, colorCode) "\033[" styleCode ";" colorCode "m"
 #   else
 #       define PI_StylizedColor(styleCode, colorCode) ""
 #   endif

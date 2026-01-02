@@ -1,4 +1,4 @@
-#include "pi/pi.h"
+﻿#include "pi/pi.h"
 
 #ifndef PI_VERSION
 /**
@@ -45,24 +45,48 @@ static int pi_Repl(void)
     puts(
         PI_GRAY "-- Welcome to Pi-" PI_VERSION PI_RESET "\n"
     );
+    
+    /* The output stream on which REPL messages will be written */
+    FILE *const out = stdout;
+    /* The input stream of source code from where REPL will read */
+    PiSource in;
 
-    /* The buffer where the read line of text will be stored */
-    char line[BUFSIZ] = "";
+    /* Opens stdin as a source code stream */
+    piOpenReplStream(&in, "<stdin>", stdin, /* maxLineLength: */ BUFSIZ);
 
-    FILE
-        /* Output stream register */
-        *const out = stdout,
-        /* Input stream register */
-        *const in = stdin;
+    if (!recoverySet)
+    {
+        /* The error handling point is set */
+        recoverySet = true;
+        
+        jmp_buf replEnv;
+
+        /* Sets the repl error handler onto handlers stack */
+        pi_SetErrorHandler(&replEnv);
+
+        /* Recovery code */
+        if (setjmp(replEnv) != 0)
+        {
+            /* Notifies the pending execution abortion */
+            puts("\nAn error occurred: " PI_ErroneousColor2("Aborting") "...");
+
+            return PI_EXIT_ABORTED;
+        }
+    }
 
     do
     {
         /* Prints default prompt */
         fputs(">>> ", out);
 
-        /* When Ctrl-Z is typed the execution is aborted */
-        if (!fgets(line, BUFSIZ, in))
+        /* Reads a line from REPL stream handling interrupts */
+        if (piReplReadLine(&in) < 0)
             break;
+
+        do
+        {
+            piSourceRead(&in);
+        } while (piSourcePeek(&in) != EOF);
 
         /*
         
@@ -70,6 +94,9 @@ static int pi_Repl(void)
 
          */
     } while (keepRunning);
+
+    /* Closes the source code stream */
+    piCloseSource(&in);
 
     return PI_EXIT_SUCCESS;
 }

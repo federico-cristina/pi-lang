@@ -52,6 +52,11 @@ typedef struct _pi_SystemInfo
      */
     bool                    isRepl;
     /**
+     * @brief   When this flag is `true` it means that the program sent an interrupt
+     *          message to the system (typically from a Ctrl+C).
+     */
+    volatile bool           interrupt;
+    /**
      * @brief   Represents the page size and the granularity of page protection and
      *          commitment.
      */
@@ -78,15 +83,14 @@ static PiSystemInfo pi_SystemInfo;
 
 #ifdef _WIN32
 /**
- * @brief   Redirects Ctrl+C event to signal `SIGINT`.
+ * @brief   Catches Ctrl+C event and raises `pi_SystemInfo.interrupt` flag.
  */
 static BOOL WINAPI pi_CtrlHandler(const DWORD fdwCtrlType)
 {
     const BOOL result = (fdwCtrlType == CTRL_C_EVENT);
 
-    /* Raises signal `SIGINT` only when the Ctrl event is Ctrl+C */
     if (result)
-        raise(SIGINT);
+        pi_SystemInfo.interrupt = true;
     
     return result;
 }
@@ -150,18 +154,43 @@ void pi_InitSystem(void)
     pi_SystemInfo.osName = "Win32";
 #   endif
 
-    const DWORD inFlags = ENABLE_PROCESSED_INPUT | ENABLE_VIRTUAL_TERMINAL_INPUT;
+    const HANDLE
+        /* Standard input stream handle */
+        stdIn = GetStdHandle(STD_INPUT_HANDLE),
+        /* Standard output stream handle */
+        stdOut = GetStdHandle(STD_OUTPUT_HANDLE),
+        /* Standard error stream handle */
+        stdErr = GetStdHandle(STD_ERROR_HANDLE);
 
-    /* Enables colors and fonts processing in Win32 cmd input stream */
-    SetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), inFlags);
+    DWORD inFlags;
+
+    /* Some flags set by the system must be mainteined */
+    GetConsoleMode(stdIn, &inFlags);
+
+    if (!PI_HasFlag(inFlags, ENABLE_PROCESSED_INPUT))
+    {
+        inFlags |= ENABLE_PROCESSED_INPUT;
+
+        /* Forces Ctrl+C system processing */
+        SetConsoleMode(stdIn, inFlags);
+    }
+
     /* Tries to add a ctrl handler */
     SetConsoleCtrlHandler(pi_CtrlHandler, TRUE);
 
-    const DWORD outFlags = ENABLE_PROCESSED_OUTPUT | ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+    DWORD outFlags;
 
-    /* Enables colors and fonts processing in Win32 cmd output and error streams */
-    SetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE), outFlags);
-    SetConsoleMode(GetStdHandle(STD_ERROR_HANDLE), outFlags);
+    /* Some flags set by the system must be mainteined */
+    GetConsoleMode(stdOut, &outFlags);
+
+    if (!PI_HasFlag(outFlags, ENABLE_VIRTUAL_TERMINAL_PROCESSING))
+    {
+        outFlags |= ENABLE_PROCESSED_OUTPUT | ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+
+        /* Enables colors and fonts processing in Win32 cmd output and error streams */
+        SetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE), outFlags);
+        SetConsoleMode(GetStdHandle(STD_ERROR_HANDLE), outFlags);
+    }
 
     SYSTEM_INFO sysInfo;
 

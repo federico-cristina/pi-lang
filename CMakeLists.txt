@@ -13,6 +13,8 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
     set(CMAKE_IMPORT_LIBRARY_PREFIX "")
 endif()
 
+include(CTest)
+
 # Defines `PI_VERSION` constant
 add_compile_definitions(
     "PI_VERSION=\"${CMAKE_PROJECT_VERSION}\""
@@ -26,3 +28,4 @@ include_directories(
 # Includes project subdirectories
 add_subdirectory("lib")
 add_subdirectory("src")
+add_subdirectory("tests")

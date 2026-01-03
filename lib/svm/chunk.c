@@ -32,16 +32,16 @@ PiSvmChunk *piFreeSvmChunk(PiSvmChunk *const chunk)
     return chunk;
 }
 
-#ifndef pi_GrowCap
-#   define pi_GrowCap(oldCap) \
-(((oldCap) < 8) ? 8 : ((oldCap) * 2))
+#ifndef PI_GrowCap
+#   define PI_GrowCap(oldCap) \
+    (((oldCap) < 8) ? 8 : ((oldCap) * 2))
 #endif
 
 static inline void pi_SvmChunkGrow(PiSvmChunk *const chunk)
 {
     const uint32_t
         oldCap = chunk->cap,
-        newCap = pi_GrowCap(oldCap);
+        newCap = PI_GrowCap(oldCap);
 
     chunk->code = piResize(uint8_t, chunk->code, oldCap, newCap);
     chunk->cap = newCap;
@@ -49,8 +49,8 @@ static inline void pi_SvmChunkGrow(PiSvmChunk *const chunk)
     return;
 }
 
-#ifndef pi_ShouldGrow
-#   define pi_ShouldGrow(cap, count, n) \
+#ifndef PI_ShouldGrow
+#   define PI_ShouldGrow(cap, count, n) \
     ((cap) < ((count) + (n)))
 #endif
 
@@ -58,7 +58,7 @@ void piSvmChunkWriteOp(PiSvmChunk *const chunk, const PiSvmOpCode opcode)
 {
     assert(chunk != NULL);
 
-    if (pi_ShouldGrow(chunk->cap, chunk->count, 1))
+    if (PI_ShouldGrow(chunk->cap, chunk->count, 1))
         pi_SvmChunkGrow(chunk);
     
     chunk->code[chunk->count++] = (uint8_t)opcode;

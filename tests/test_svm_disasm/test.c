@@ -19,12 +19,6 @@ int main(void)
 
     piDisasmSvmChunk(stdout, &chunk, "TestChunk");
     
-    piSvmChunkWriteOp(&chunk, PI_SVM_OP_INVALID);
-
-    piDisasmSvmChunk(stdout, &chunk, "TestChunk");
-
-    piFreeSvmChunk(&chunk);
-
     pi_FreeSystem();
 
     return EXIT_SUCCESS;

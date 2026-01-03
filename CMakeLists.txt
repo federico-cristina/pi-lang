@@ -1,4 +1,4 @@
-﻿cmake_minimum_required(VERSION 3.10.0)
+﻿cmake_minimum_required(VERSION 3.21.0)
 
 # Adds a new project or embed into an existing one
 if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
@@ -11,6 +11,10 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
     set(CMAKE_STATIC_LIBRARY_PREFIX "")
     set(CMAKE_SHARED_LIBRARY_PREFIX "")
     set(CMAKE_IMPORT_LIBRARY_PREFIX "")
+
+    set(CMAKE_C_STANDARD            99)
+    set(CMAKE_C_STANDARD_REQUIRED   ON)
+    set(CMAKE_C_EXTENSIONS          OFF)
 endif()
 
 include(CTest)

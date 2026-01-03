@@ -38,20 +38,19 @@ PI_C_HEADER_BEGIN
 typedef struct _pi_svm_Chunk
 {
     /**
-     * @brief   A simple dynamic array for storing the bytecode.
+     * @brief   Represents the bytecode array.
      */
-    struct _pi_svm_ChunkBytecode
-    {
+    uint8_t        *code;
         /**
-         * @brief   Represents the byte array.
+     * @brief   Represents the number of bytes written to the array.
          */
-        uint8_t *code;
+    uint32_t        count;
         /**
-         * @brief   Represents the number of bytes written to the array.
+     * @brief   Represents the maximum capacity of the array.
          */
-        uint32_t count;
+    uint32_t        cap;
         /**
-         * @brief   Represents the maximum capacity of the array.
+     * @brief   This field represents the value constant pool.
          */
         uint32_t cap;
     };

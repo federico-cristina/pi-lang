@@ -65,7 +65,7 @@ void piSvmChunkWriteShortOp(PiSvmChunk *const chunk, const PiSvmOpCode opcode, c
 {
     assert(chunk != NULL);
 
-    if (pi_ShouldGrow(chunk->cap, chunk->count, 2))
+    if (PI_ShouldGrow(chunk->cap, chunk->count, 2))
         pi_SvmChunkGrow(chunk);
     
     chunk->code[chunk->count++] = (uint8_t)opcode;

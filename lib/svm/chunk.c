@@ -1,4 +1,4 @@
-#include "pi/svm/chunk.h"
+﻿#include "pi/svm/chunk.h"
 
 /* =---- Chunks of Bytecode ------------------------------------= */
 
@@ -22,7 +22,7 @@ PiSvmChunk *piFreeSvmChunk(PiSvmChunk *const chunk)
     assert(chunk != NULL);
 
     /* Releases resources used to store the actual bytecode */
-    if (chunk->code)
+    if (chunk->cap > 0)
         free(chunk->code);
 
     chunk->code = NULL;

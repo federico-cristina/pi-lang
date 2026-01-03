@@ -223,7 +223,6 @@ void pi_InitSystem(void)
         pi_SystemInfo.currentDir = NULL;
     }
 #else
-#   error Linux support has not been implemented yet!
     /* Sets system page size */
     pi_SystemInfo.pageSize = sysconf(_SC_PAGESIZE);
 #endif

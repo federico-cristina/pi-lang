@@ -390,6 +390,14 @@ void *pi_resize(void *const block, const size_t oldSize, const size_t newSize);
     (((x) & (flag)) != 0)
 #endif
 
+#ifndef PI_ShouldGrow
+/**
+ * @brief   Check if there is enough space for `n` more elements.
+ */
+#   define PI_ShouldGrow(cap, count, n) \
+    ((cap) < ((count) + (n)))
+#endif
+
 /* =------------------------------------------------------------= */
 
 PI_C_HEADER_END

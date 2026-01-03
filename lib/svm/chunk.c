@@ -49,11 +49,6 @@ static inline void pi_SvmChunkGrow(PiSvmChunk *const chunk)
     return;
 }
 
-#ifndef PI_ShouldGrow
-#   define PI_ShouldGrow(cap, count, n) \
-    ((cap) < ((count) + (n)))
-#endif
-
 void piSvmChunkWriteOp(PiSvmChunk *const chunk, const PiSvmOpCode opcode)
 {
     assert(chunk != NULL);

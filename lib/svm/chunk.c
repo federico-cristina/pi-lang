@@ -14,6 +14,10 @@ PiSvmChunk *piInitSvmChunk(PiSvmChunk *const chunk)
     chunk->count = 0;
     chunk->cap = 0;
 
+    piInitValueArray(&chunk->data, 0);
+
+    chunk->lines = NULL;
+
     return chunk;
 }
 
@@ -28,13 +32,33 @@ PiSvmChunk *piFreeSvmChunk(PiSvmChunk *const chunk)
     chunk->code = NULL;
     chunk->count = 0;
     chunk->cap = 0;
+    
+    piFreeValueArray(&chunk->data);
+    
+    chunk->lines = NULL;
 
     return chunk;
 }
 
+void piSvmChunkPushLine(PiSvmChunk *const chunk, const uint32_t lineNumber, const char *const line)
+{
+    assert(chunk != NULL);
+
+    PiSvmLineInfo *const lineInfo = piNew(PiSvmLineInfo);
+
+    lineInfo->text = line;
+    lineInfo->line = lineNumber;
+    lineInfo->offset = chunk->count;
+    lineInfo->prev = chunk->lines;
+
+    chunk->lines = lineInfo;
+
+    return;
+}
+
 #ifndef PI_GrowCap
 #   define PI_GrowCap(oldCap) \
-    (((oldCap) < 8) ? 8 : ((oldCap) * 2))
+    (((oldCap) < 8) ? 8 : ((oldCap) << 2))
 #endif
 
 static inline void pi_SvmChunkGrow(PiSvmChunk *const chunk)
@@ -55,9 +79,12 @@ void piSvmChunkWriteOp(PiSvmChunk *const chunk, const PiSvmOpCode opcode)
 
     if (PI_ShouldGrow(chunk->cap, chunk->count, 1))
         pi_SvmChunkGrow(chunk);
-    
-    chunk->code[chunk->count++] = (uint8_t)opcode;
 
+    chunk->code[chunk->count++] = (uint8_t)opcode;
+    
+    if (chunk->lines)
+        ++chunk->lines->offset;
+    
     return;
 }
 
@@ -70,7 +97,10 @@ void piSvmChunkWriteShortOp(PiSvmChunk *const chunk, const PiSvmOpCode opcode, c
     
     chunk->code[chunk->count++] = (uint8_t)opcode;
     chunk->code[chunk->count++] = arg;
-
+    
+    if (chunk->lines)
+        chunk->lines->offset += 2;
+    
     return;
 }
 

@@ -1,9 +1,8 @@
 ﻿#include "pi/svm/disasm.h"
+#include "pi/svm/svm.h"
 
 int main(void)
 {
-    pi_InitSystem();
-
     PiSvmChunk chunk;
 
     piInitSvmChunk(&chunk);
@@ -24,16 +23,13 @@ int main(void)
     piSvmChunkWriteShortOp(&chunk, PI_SVM_OP_LDC, k1);
     piSvmChunkWriteOp(&chunk, PI_SVM_OP_ADD);
     
-    piSvmChunkPushLine(&chunk, 4, "print b, a;");
+    piSvmChunkPushLine(&chunk, 4, "return b;");
     
-    piSvmChunkWriteOp(&chunk, PI_SVM_OP_OUT);
-    piSvmChunkWriteOp(&chunk, PI_SVM_OP_OUT);
+    piSvmChunkWriteOp(&chunk, PI_SVM_OP_RET);
 
-    piSvmChunkWriteShortOp(&chunk, PI_SVM_OP_EXIT, EXIT_SUCCESS);
+    const int result = piRunSvmChunk(NULL, &chunk);
 
     piDisasmSvmChunk(stdout, &chunk, "TestChunk");
     
-    pi_FreeSystem();
-
-    return EXIT_SUCCESS;
+    return result;
 }

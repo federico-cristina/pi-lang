@@ -12,6 +12,17 @@
  * @brief   No Operation - Does nothing and proceeds to the next instruction.
  */
 PI_DefineOp(OP_NOP,         0x00, "nop",        PI_WHITE)
+/**
+ * @brief   Exit - Terminates the execution with an exit code.
+ */
+PI_DefineOp(OP_EXIT,        0x0E, "exit",        PI_WHITE)
+/**
+ * @brief   Return - Returns the top-value of the stack from the current procedure to the
+ *                   precedent.
+ * 
+ * @note    When used in top-level function terminates the execution.
+ */
+PI_DefineOp(OP_RET,         0x0F, "ret",         PI_MAGENTA)
 
 /**
  * +---- DATA TRANSFER OPCODES ------------+
@@ -20,11 +31,11 @@ PI_DefineOp(OP_NOP,         0x00, "nop",        PI_WHITE)
 /**
  * @brief   Load Constant - Loads a constant from data pool to the top of the stack.
  */
-PI_DefineOp(OP_LDC,         0x10, "ldc",        PI_BOLD_BLUE)
+PI_DefineOp(OP_LDC,         0x10, "ldc",        PI_BLUE)
 /**
  * @brief   Load Immediate - Loads an immediate value onto the top of the stack.
  */
-PI_DefineOp(OP_LDI,         0x11, "ldi",        PI_BOLD_BLUE)
+PI_DefineOp(OP_LDI,         0x11, "ldi",        PI_BLUE)
 
 /**
  * +---- BITWISE OPCODES ------------------+
@@ -96,6 +107,12 @@ PI_DefineOp(OP_POW,         0x3E, "pow",        PI_DARK_YELLOW)
  * @brief   Remainder - Arithmetic modulus division operation: requires at least two values into the stack.
  */
 PI_DefineOp(OP_REM,         0x3F, "rem",        PI_DARK_YELLOW)
+
+/**
+ * +---- I/O OPCODES ----------------------+
+ */
+
+PI_DefineOp(OP_OUT,         0xA0, "out",        PI_BLINK_GRAY)
 
 /**
  * +---------------------------------------+

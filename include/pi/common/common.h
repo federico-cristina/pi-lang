@@ -28,6 +28,17 @@
 
 #include <stddef.h>
 
+#ifndef PI_DEBUG
+/**
+ * @brief   Represents a debug flag.
+ */
+#   ifdef _DEBUG
+#       define PI_DEBUG 1
+#   else
+#       define PI_DEBUG 0
+#   endif
+#endif
+
 /**
  * +---- Compilation Options --------------+
  */
@@ -52,7 +63,7 @@
  *          for neatness reasons and because other components of the program might base
  *          some compilation differences on this option.
  */
-#   define PI_USE_BOXED_VALUES             0
+#   define PI_USE_BOXED_VALUES             1
 #endif
 
 /**
@@ -148,9 +159,28 @@ void pi_InitSystem(void);
 void pi_FreeSystem(void);
 
 /**
- * +---- System Info ----------------------+
+ * +---- System Management ----------------+
  */
 
+void piEnableVirtualTerminal(void);
+
+/**
+ * @brief   This function changes the console title.
+ * 
+ * @param[in] title The title the console window will have after the call to this function. 
+ */
+void piSetConsoleTitle(const char *const title);
+/**
+ * @brief   This function changes the current working directory of the process.
+ * 
+ * @param[in] path  The path to the new cwd. 
+ */
+void piSetCurrentDirectory(const char *const path);
+
+/**
+ * @brief   This function returns the current working directory of the process. 
+ */
+const char *piGetCurrentDirectory(void);
 /**
  * @brief   This function returns the size of a system page of memory. 
  */

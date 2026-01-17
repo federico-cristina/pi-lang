@@ -29,7 +29,7 @@ static int pi_SvmLoop(PiEnv *const env, const PiSvmChunk *const chunk, PiValueAr
 #pragma push_macro("I")
 
 #define K(k) \
-    piValueArrayGet(&chunk->data, (uint32_t)(k))
+    piValueArrayGet((PiValueArray *)&chunk->data, (uint32_t)(k))
 #define I(i) \
     piUInt((pi_uint_t)(i))
 

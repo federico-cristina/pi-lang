@@ -79,7 +79,7 @@ void piDisasmSvmChunk(FILE *const stream, const PiSvmChunk *const chunk, const c
                 fprintf(stream, " " PI_CYAN "#%02" PRIX8 PI_RESET, k = chunk->code[++offset]);
                 /* Prints the constant value */
                 fprintf(stream, " (");
-                piPrintValueTo(stream, piValueArrayGet(&chunk->data, k));
+                piPrintValueTo(stream, piValueArrayGet((PiValueArray *)&chunk->data, k));
                 fprintf(stream, ")");
                 break;
             case PI_SVM_OP_LDI:

@@ -154,7 +154,7 @@ void pi_InitSystem(void)
         /* Retrieves current working directory path */
         GetCurrentDirectory(currentDirSize, currentDir);
         /* Sets the current working directory buffer */
-        pi_SystemInfo.currentDir = (const char *)currentDir;
+        pi_SystemInfo.currentDir = (char *)currentDir;
     }
     else
     {

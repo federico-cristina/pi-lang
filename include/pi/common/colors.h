@@ -394,6 +394,13 @@
  * +---- Specific Colors ------------------+
  */
 
+/* Set the color of a keyword */
+#define PI_KeywordColor(text)       PI_BOLD_DARK_BLUE text PI_RESET
+/* Set the color of an integer literal */
+#define PI_IntLiteralColor(text)    PI_DARK_MAGENTA text PI_RESET
+/* Set the color of a real literal */
+#define PI_RealLiteralColor(text)   PI_MAGENTA text PI_RESET
+
 /* Set the colors of a single quoted char literal. */
 #define PI_CharColor(c)             PI_DARK_YELLOW "'" c "'" PI_RESET
 /* Set the colors of a single quoted escape sequence literal. */

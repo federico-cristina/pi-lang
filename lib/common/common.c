@@ -47,16 +47,6 @@ typedef struct _pi_SystemInfo
      */
     bool                    isInit;
     /**
-     * @brief   When this flag is `true` it means that the program is running in REPL
-     *          mode.
-     */
-    bool                    isRepl;
-    /**
-     * @brief   When this flag is `true` it means that the program sent an interrupt
-     *          message to the system (typically from a Ctrl+C).
-     */
-    volatile bool           interrupt;
-    /**
      * @brief   Represents the page size and the granularity of page protection and
      *          commitment.
      */
@@ -73,7 +63,7 @@ typedef struct _pi_SystemInfo
     /**
      * @brief   A string representing the path to the current process directory.
      */
-    const char             *currentDir;
+    char                   *currentDir;
 } PiSystemInfo;
 
 /**
@@ -82,19 +72,6 @@ typedef struct _pi_SystemInfo
 static PiSystemInfo pi_SystemInfo;
 
 #ifdef _WIN32
-/**
- * @brief   Catches Ctrl+C event and raises `pi_SystemInfo.interrupt` flag.
- */
-static BOOL WINAPI pi_CtrlHandler(const DWORD fdwCtrlType)
-{
-    const BOOL result = (fdwCtrlType == CTRL_C_EVENT);
-
-    if (result)
-        pi_SystemInfo.interrupt = true;
-    
-    return result;
-}
-
 /**
  * @brief   Gets a string representing the CPU architecture using WinAPI.
  */
@@ -154,44 +131,6 @@ void pi_InitSystem(void)
     pi_SystemInfo.osName = "Win32";
 #   endif
 
-    const HANDLE
-        /* Standard input stream handle */
-        stdIn = GetStdHandle(STD_INPUT_HANDLE),
-        /* Standard output stream handle */
-        stdOut = GetStdHandle(STD_OUTPUT_HANDLE),
-        /* Standard error stream handle */
-        stdErr = GetStdHandle(STD_ERROR_HANDLE);
-
-    DWORD inFlags;
-
-    /* Some flags set by the system must be mainteined */
-    GetConsoleMode(stdIn, &inFlags);
-
-    if (!PI_HasFlag(inFlags, ENABLE_PROCESSED_INPUT))
-    {
-        inFlags |= ENABLE_PROCESSED_INPUT;
-
-        /* Forces Ctrl+C system processing */
-        SetConsoleMode(stdIn, inFlags);
-    }
-
-    /* Tries to add a ctrl handler */
-    SetConsoleCtrlHandler(pi_CtrlHandler, TRUE);
-
-    DWORD outFlags;
-
-    /* Some flags set by the system must be mainteined */
-    GetConsoleMode(stdOut, &outFlags);
-
-    if (!PI_HasFlag(outFlags, ENABLE_VIRTUAL_TERMINAL_PROCESSING))
-    {
-        outFlags |= ENABLE_PROCESSED_OUTPUT | ENABLE_VIRTUAL_TERMINAL_PROCESSING;
-
-        /* Enables colors and fonts processing in Win32 cmd output and error streams */
-        SetConsoleMode(stdOut, outFlags);
-        SetConsoleMode(stdErr, outFlags);
-    }
-
     SYSTEM_INFO sysInfo;
 
     /* Retrieves system infos */
@@ -238,14 +177,6 @@ void pi_FreeSystem(void)
     /* Marks `pi_SystemInfo` as NOT initialized */
     pi_SystemInfo.isInit = false;
 
-    if (pi_SystemInfo.isRepl)
-    {
-        /* ToDo: Free REPL-specific resources */
-    }
-
-    /* Resets REPL flag */
-    pi_SystemInfo.isRepl = false;
-
     if (pi_SystemInfo.currentDir)
         free((void *)pi_SystemInfo.currentDir);
 
@@ -259,8 +190,98 @@ void pi_FreeSystem(void)
 }
 
 /**
- * +---- System Info ----------------------+
+ * +---- System Management ----------------+
  */
+
+void piEnableVirtualTerminal(void)
+{
+    if (PI_DEBUG && !pi_SystemInfo.isInit)
+        piFatal("system has not been initialized", NULL);
+
+#ifdef _WIN32
+    const HANDLE
+        /* Standard input stream handle */
+        stdIn = GetStdHandle(STD_INPUT_HANDLE),
+        /* Standard output stream handle */
+        stdOut = GetStdHandle(STD_OUTPUT_HANDLE),
+        /* Standard error stream handle */
+        stdErr = GetStdHandle(STD_ERROR_HANDLE);
+
+    DWORD inFlags;
+
+    /* Some flags set by the system must be mainteined */
+    GetConsoleMode(stdIn, &inFlags);
+
+    if (!PI_HasFlag(inFlags, ENABLE_PROCESSED_INPUT))
+    {
+        inFlags |= ENABLE_PROCESSED_INPUT;
+
+        /* Forces Ctrl+C system processing */
+        SetConsoleMode(stdIn, inFlags);
+    }
+
+    DWORD outFlags;
+
+    /* Some flags set by the system must be mainteined */
+    GetConsoleMode(stdOut, &outFlags);
+
+    if (!PI_HasFlag(outFlags, ENABLE_VIRTUAL_TERMINAL_PROCESSING))
+    {
+        outFlags |= ENABLE_PROCESSED_OUTPUT | ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+
+        /* Enables colors and fonts processing in Win32 cmd output and error streams */
+        SetConsoleMode(stdOut, outFlags);
+        SetConsoleMode(stdErr, outFlags);
+    }
+#endif
+
+    return;
+}
+
+void piSetConsoleTitle(const char *const title)
+{
+    if (PI_DEBUG && !pi_SystemInfo.isInit)
+        piFatal("system has not been initialized", NULL);
+
+#ifdef _WIN32
+    if (!SetConsoleTitleA((LPCSTR)title))
+        piRaiseError("something went wrong", NULL);
+#else
+    printf("\033]0;%s\007", title);
+#endif
+
+    return;
+}
+
+void piSetCurrentDirectory(const char *const path)
+{
+    if (PI_DEBUG && !pi_SystemInfo.isInit)
+        piFatal("system has not been initialized", NULL);
+
+#ifdef _WIN32
+    if (!SetCurrentDirectoryA((LPCSTR)path))
+        piRaiseError("something went wrong", NULL);
+#else
+    chdir(path);
+#endif
+
+    const size_t count = strlen(path);
+
+    /* Copies the just set path in currentDir register */
+    strncpy(pi_SystemInfo.currentDir, path, count);
+    /* Assures the path ends with <NUL> */
+    pi_SystemInfo.currentDir[count] = '\0';
+
+    return;
+}
+
+const char *piGetCurrentDirectory(void)
+{
+    if (PI_DEBUG && !pi_SystemInfo.isInit)
+        piFatal("system has not been initialized", NULL);
+
+    return pi_SystemInfo.currentDir;
+}
 
 size_t pi_GetPageSize(void)
 {

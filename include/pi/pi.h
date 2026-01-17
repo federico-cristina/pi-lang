@@ -30,6 +30,13 @@
 #include "pi/common/common.h"
 
 /**
+ * +---- Runtime Headers ------------------+
+ */
+
+/* Include runtime value and value array structures */
+#include "pi/runtime/value.h"
+
+/**
  * +---- Stack-VM Headers -----------------+
  */
 
@@ -37,6 +44,8 @@
 #include "pi/svm/opcode.h"
 /* Include chunks of stack-oriented bytecode */
 #include "pi/svm/chunk.h"
+/* Include stack-vm execution loop */
+#include "pi/svm/svm.h"
 
 /* Include stack-oriented bytecode disassembler */
 #include "pi/svm/disasm.h"

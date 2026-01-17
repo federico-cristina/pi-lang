@@ -35,6 +35,15 @@
  */
 static int pi_Repl(void)
 {
+    /* Enable virtual terminal processing */
+    piEnableVirtualTerminal();
+
+    const char *const userProfile = getenv("UserProfile");
+
+    /* Sets console title and current directory */
+    piSetConsoleTitle("Pi " PI_VERSION);
+    piSetCurrentDirectory(userProfile);
+
     bool
         /* This flag is raised during the execution of the main loop */
         keepRunning = true,
@@ -43,7 +52,7 @@ static int pi_Repl(void)
 
     /* Prints initial message */
     puts(
-        PI_GRAY "-- Welcome to Pi-" PI_VERSION PI_RESET "\n"
+        PI_GRAY "-- Welcome to Pi " PI_VERSION " REPL" PI_RESET "\n"
     );
     
     /* The output stream on which REPL messages will be written */
@@ -59,13 +68,13 @@ static int pi_Repl(void)
         /* The error handling point is set */
         recoverySet = true;
         
-        jmp_buf replEnv;
+        jmp_buf replJmpBuf;
 
         /* Sets the repl error handler onto handlers stack */
-        pi_SetErrorHandler(&replEnv);
+        pi_SetErrorHandler(&replJmpBuf);
 
         /* Recovery code */
-        if (setjmp(replEnv) != 0)
+        if (setjmp(replJmpBuf) != 0)
         {
             /* Notifies the pending execution abortion */
             puts("\nAn error occurred: " PI_ErroneousColor2("Aborting") "...");
@@ -82,11 +91,6 @@ static int pi_Repl(void)
         /* Reads a line from REPL stream handling interrupts */
         if (piReplReadLine(&in) < 0)
             break;
-
-        do
-        {
-            piSourceRead(&in);
-        } while (piSourcePeek(&in) != EOF);
 
         /*
         

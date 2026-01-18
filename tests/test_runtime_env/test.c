@@ -2,8 +2,6 @@
 
 int main(void)
 {
-    pi_InitSystem();
-
     PiEnv env;
 
     piInitEnv(&env);
@@ -16,7 +14,5 @@ int main(void)
 
     piFreeEnv(&env);
 
-    pi_FreeSystem();
-
-    return;
+    return EXIT_SUCCESS;
 }

@@ -31,5 +31,8 @@ int main(void)
 
     piDisasmSvmChunk(stdout, &chunk, "TestChunk");
     
-    return result;
+    if (result == 6)
+        return EXIT_SUCCESS;
+    else
+        return EXIT_FAILURE;
 }

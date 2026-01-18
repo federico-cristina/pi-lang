@@ -38,6 +38,13 @@ PI_DefineOp(OP_LDC,         0x10, "ldc",        PI_BLUE)
 PI_DefineOp(OP_LDI,         0x11, "ldi",        PI_BLUE)
 
 /**
+ * +---- STACK OPCODES --------------------+
+ */
+
+PI_DefineOp(OP_POP,         0x1A, "pop",        PI_GRAY)
+PI_DefineOp(OP_DUP,         0x1B, "dup",        PI_BLUE)
+
+/**
  * +---- BITWISE OPCODES ------------------+
  */
 

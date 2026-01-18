@@ -119,6 +119,21 @@ static int pi_SvmLoop(PiEnv *const env, const PiSvmChunk *const chunk, PiValueAr
 #pragma endregion
 
             /**
+             * +---- STACK OPCODES --------------------+
+             */
+
+#pragma region STACK OPCODES
+
+        case PI_SVM_OP_POP:
+            pop();
+            break;
+        case PI_SVM_OP_DUP:
+            push(peek());
+            break
+
+#pragma endregion
+
+            /**
              * +---- BITWISE OPCODES ------------------+
              */
             

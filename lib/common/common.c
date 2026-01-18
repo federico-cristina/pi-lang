@@ -9,6 +9,7 @@
 #   include <unistd.h>
 #endif
 
+#include <string.h>
 #include <errno.h>
 
 /**

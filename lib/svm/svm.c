@@ -1,5 +1,7 @@
 ﻿#include "pi/svm/svm.h"
 
+#include <math.h>
+
 /* =---- Stack-based Virtual Machine ---------------------------= */
 
 static int pi_SvmLoop(PiEnv *const env, const PiSvmChunk *const chunk, PiValueArray *const evalStack)

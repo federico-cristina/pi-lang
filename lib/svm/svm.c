@@ -129,7 +129,7 @@ static int pi_SvmLoop(PiEnv *const env, const PiSvmChunk *const chunk, PiValueAr
             break;
         case PI_SVM_OP_DUP:
             push(peek());
-            break
+            break;
 
 #pragma endregion
 

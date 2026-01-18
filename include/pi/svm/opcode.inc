@@ -18,7 +18,8 @@ PI_DefineOp(OP_NOP,         0x00, "nop",        PI_WHITE)
 PI_DefineOp(OP_EXIT,        0x0E, "exit",        PI_WHITE)
 /**
  * @brief   Return - Returns the top-value of the stack from the current procedure to the
- *                   precedent.
+ *                   precedent. When there are no values onto the stack, it just terminates
+ *                   the execution.
  * 
  * @note    When used in top-level function terminates the execution.
  */
@@ -29,7 +30,7 @@ PI_DefineOp(OP_RET,         0x0F, "ret",         PI_MAGENTA)
  */
 
 /**
- * @brief   Load Constant - Loads a constant from data pool to the top of the stack.
+ * @brief   Load Constant - Loads a constant from data pool onto the top of the stack.
  */
 PI_DefineOp(OP_LDC,         0x10, "ldc",        PI_BLUE)
 /**
@@ -41,7 +42,13 @@ PI_DefineOp(OP_LDI,         0x11, "ldi",        PI_BLUE)
  * +---- STACK OPCODES --------------------+
  */
 
+/**
+ * @brief   Pop - Pops a value from the stack, discarding it.
+ */
 PI_DefineOp(OP_POP,         0x1A, "pop",        PI_GRAY)
+/**
+ * @brief   Duplicate - Pushes onto the stack a copy of the top value.
+ */
 PI_DefineOp(OP_DUP,         0x1B, "dup",        PI_BLUE)
 
 /**
@@ -119,6 +126,9 @@ PI_DefineOp(OP_REM,         0x3F, "rem",        PI_DARK_YELLOW)
  * +---- I/O OPCODES ----------------------+
  */
 
+/**
+ * @brief   Output - Prints on `stdout`: requires at least one value into the stack.
+ */
 PI_DefineOp(OP_OUT,         0xA0, "out",        PI_BLINK_GRAY)
 
 /**

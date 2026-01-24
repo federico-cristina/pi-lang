@@ -8,7 +8,9 @@ $*/
 
 # CMake output/build directory
 build/
+build-*/
 out/
+out-*/
 
 # CMake ignored directories
 CMakeFiles

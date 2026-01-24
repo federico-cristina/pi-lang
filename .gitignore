@@ -1,4 +1,8 @@
-﻿# Visual Studio and Visual Studio Code cache/options directory
+﻿# Hidden folders
+.*/
+$*/
+
+# Visual Studio and Visual Studio Code cache/options directory
 .vs/
 .vscode/
 

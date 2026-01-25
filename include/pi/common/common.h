@@ -269,10 +269,6 @@
 #include "pi/common/memory.h"
 /* Arena allocator for batch allocations */
 #include "pi/common/arena.h"
-/* Internal strings manipulation and hashing */
-#include "pi/common/string.h"
-/* General-purpose hash tables */
-#include "pi/common/hash.h"
 
 /* =------------------------------------------------------------= */
 

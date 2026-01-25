@@ -5,6 +5,10 @@
 add_library(pi-lib-runtime
     "value.c"
     "env.c"
+    "gc.c"
+    "io.c"
+    "string.c"
+    "capability.c"
 )
 
 # Add namespaced alias for clean embedding and modern CMake usage

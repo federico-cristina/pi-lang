@@ -1,6 +1,10 @@
 ﻿#pragma once
 
 /**
+ * @file        value.h
+ *
+ * @author      Federico Crisitina <federico.cristina@outlook.it>
+ * 
  * @copyright   Copyright (c) 2025 Federico Cristina
  *
  *              Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,6 +18,8 @@
  *              WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *              See the License for the specific language governing permissions and
  *              limitations under the License.
+ *
+ * @brief       Value system with NaN-boxing, type checking, and dynamic arrays.
  */
 
 #ifndef _PI_RUNTIME_VALUE_H
@@ -240,35 +246,35 @@ static const PiValue PI_FALSE = PI_GetValue(BOOL, false);
 /**
  * @brief   This function takes as input a value of type `bool` and returns it boxed in a `PiValue`. 
  */
-static inline PiValue piBool(const bool value)
+PI_InlineApi(PiValue) piBool(const bool value)
 {
     return value ? PI_TRUE : PI_FALSE;
 }
 /**
  * @brief   This function takes as input a value of type `char` and returns it boxed in a `PiValue`. 
  */
-static inline PiValue piChar(const char value)
+PI_InlineApi(PiValue) piChar(const char value)
 {
     return (PiValue)PI_GetValue(CHAR, value);
 }
 /**
  * @brief   This function takes as input a value of type `pi_uint_t` and returns it boxed in a `PiValue`. 
  */
-static inline PiValue piUInt(const pi_uint_t value)
+PI_InlineApi(PiValue) piUInt(const pi_uint_t value)
 {
     return (PiValue)PI_GetValue(UINT, value);
 }
 /**
  * @brief   This function takes as input a value of type `pi_sint_t` and returns it boxed in a `PiValue`.  
  */
-static inline PiValue piSInt(const pi_sint_t value)
+PI_InlineApi(PiValue) piSInt(const pi_sint_t value)
 {
     return (PiValue)PI_GetValue(SINT, value);
 }
 /**
  * @brief   This function takes as input a value of type `double` and returns it boxed in a `PiValue`. 
  */
-static inline PiValue piReal(const double value)
+PI_InlineApi(PiValue) piReal(const double value)
 {
 #if PI_USE_BOXED_VALUES
     if (isnan(value))
@@ -291,7 +297,7 @@ static inline PiValue piReal(const double value)
 /**
  * @brief   This function takes as input a value of type `PiObject` and returns it boxed in a `PiValue`. 
  */
-static inline PiValue piObject(PiObject *const value)
+PI_InlineApi(PiValue) piObject(PiObject *const value)
 {
     if (!value)
         return PI_NULL;
@@ -312,42 +318,42 @@ static inline PiValue piObject(PiObject *const value)
 /**
  * @brief   This function checks if the value type of the specified value is `none`.
  */
-static inline bool piIsNone(const PiValue value)
+PI_InlineApi(bool) piIsNone(const PiValue value)
 {
     return PI_GetValueType(value) == PI_VALUE_TYPE_NONE;
 }
 /**
  * @brief   This function checks if the value type of the specified value is `bool`.
  */
-static inline bool piIsBool(const PiValue value)
+PI_InlineApi(bool) piIsBool(const PiValue value)
 {
     return PI_GetValueType(value) == PI_VALUE_TYPE_BOOL;
 }
 /**
  * @brief   This function checks if the value type of the specified value is `char`.
  */
-static inline bool piIsChar(const PiValue value)
+PI_InlineApi(bool) piIsChar(const PiValue value)
 {
     return PI_GetValueType(value) == PI_VALUE_TYPE_CHAR;
 }
 /**
  * @brief   This function checks if the value type of the specified value is `nat`.
  */
-static inline bool piIsUInt(const PiValue value)
+PI_InlineApi(bool) piIsUInt(const PiValue value)
 {
     return PI_GetValueType(value) == PI_VALUE_TYPE_UINT;
 }
 /**
  * @brief   This function checks if the value type of the specified value is `int`.
  */
-static inline bool piIsSInt(const PiValue value)
+PI_InlineApi(bool) piIsSInt(const PiValue value)
 {
     return PI_GetValueType(value) == PI_VALUE_TYPE_SINT;
 }
 /**
  * @brief   This function checks if the value type of the specified value is `real`.
  */
-static inline bool piIsReal(const PiValue value)
+PI_InlineApi(bool) piIsReal(const PiValue value)
 {
 #if PI_USE_BOXED_VALUES
     return !PI_HasTag((value).TAGS, PI_TAG_QNAN);
@@ -358,7 +364,7 @@ static inline bool piIsReal(const PiValue value)
 /**
  * @brief   This function checks if the value type of the specified value is `object`.
  */
-static inline bool piIsObject(const PiValue value)
+PI_InlineApi(bool) piIsObject(const PiValue value)
 {
 #if PI_USE_BOXED_VALUES
     return PI_HasTag((value).TAGS, PI_TAG_SIGN | PI_TAG_QNAN);
@@ -374,7 +380,7 @@ static inline bool piIsObject(const PiValue value)
 /**
  * @brief   This function returns the value type of the specified value.
  */
-static inline PiValueType piValueTypeOf(const PiValue value)
+PI_InlineApi(PiValueType) piValueTypeOf(const PiValue value)
 {
 #if PI_USE_BOXED_VALUES
     if (piIsReal(value))
@@ -394,7 +400,7 @@ static inline PiValueType piValueTypeOf(const PiValue value)
 /**
  * @brief   This function gets the `bool` representation of this value.
  */
-static inline bool piAsBool(const PiValue value)
+PI_InlineApi(bool) piAsBool(const PiValue value)
 {
 #if PI_USE_BOXED_VALUES
     return (bool)PI_GetValueData(value);
@@ -405,7 +411,7 @@ static inline bool piAsBool(const PiValue value)
 /**
  * @brief   This function gets the `char` representation of this value.
  */
-static inline char piAsChar(const PiValue value)
+PI_InlineApi(char) piAsChar(const PiValue value)
 {
 #if PI_USE_BOXED_VALUES
     return (char)PI_GetValueData(value);
@@ -416,7 +422,7 @@ static inline char piAsChar(const PiValue value)
 /**
  * @brief   This function gets the `nat` representation of this value.
  */
-static inline pi_uint_t piAsUInt(const PiValue value)
+PI_InlineApi(pi_uint_t) piAsUInt(const PiValue value)
 {
 #if PI_USE_BOXED_VALUES
     return (pi_uint_t)PI_GetValueData(value);
@@ -427,7 +433,7 @@ static inline pi_uint_t piAsUInt(const PiValue value)
 /**
  * @brief   This function gets the `int` representation of this value.
  */
-static inline pi_sint_t piAsSInt(const PiValue value)
+PI_InlineApi(pi_sint_t) piAsSInt(const PiValue value)
 {
 #if PI_USE_BOXED_VALUES
     return (pi_sint_t)PI_GetValueData(value);
@@ -438,7 +444,7 @@ static inline pi_sint_t piAsSInt(const PiValue value)
 /**
  * @brief   This function gets the `real` representation of this value.
  */
-static inline double piAsReal(const PiValue value)
+PI_InlineApi(double) piAsReal(const PiValue value)
 {
 #if PI_USE_BOXED_VALUES
     return value.REAL;
@@ -449,7 +455,7 @@ static inline double piAsReal(const PiValue value)
 /**
  * @brief   This function gets the reference to the object represented by this value.
  */
-static inline PiObject *piAsObject(const PiValue value)
+PI_InlineApi(PiObject *) piAsObject(const PiValue value)
 {
 #if PI_USE_BOXED_VALUES
     return (PiObject *)PI_GetValueAddr(value);
@@ -465,14 +471,14 @@ static inline PiObject *piAsObject(const PiValue value)
 /**
  * @brief   This function checks if the value is `null`.
  */
-static inline bool piIsNull(const PiValue value)
+PI_InlineApi(bool) piIsNull(const PiValue value)
 {
     return memcmp(&value, &PI_NULL, sizeof(PiValue)) == 0;
 }
 /**
  * @brief   This function checks if the value is `true`.
  */
-static inline bool piIsTrue(const PiValue value)
+PI_InlineApi(bool) piIsTrue(const PiValue value)
 {
 #if PI_DEBUG
     bool result;
@@ -564,7 +570,7 @@ int piPrintValueTo(FILE *const stream, const PiValue value);
  * @brief   This function prints, on the standard output stream, a human-readable representation
  *          of the specified value.
  */
-static inline int piPrintValue(const PiValue value)
+PI_InlineApi(int) piPrintValue(const PiValue value)
 {
     return piPrintValueTo(stdout, value);
 }
@@ -588,9 +594,19 @@ static inline int piPrintValue(const PiValue value)
 #   define PI_DEFAULT_ARRAY_CAP (64 / sizeof(PiValue))
 #endif
 
+#ifndef PI_INLINE_STACK_SIZE
+/**
+ * @brief   Number of PiValue elements to keep inline in PiValueArray to reduce
+ *          heap allocations for small stacks. Most VM operations use fewer than
+ *          32 stack values, making this optimization effective.
+ */
+#   define PI_INLINE_STACK_SIZE (32 / sizeof(PiValue))
+#endif
+
 typedef struct _pi_ValueArray
 {
-    PiValue *data;
+    PiValue  inline_buffer[PI_INLINE_STACK_SIZE];   /* Inline storage for small arrays */
+    PiValue *data;                                   /* Points to inline_buffer or heap */
     uint32_t count;
     uint32_t cap;
 } PiValueArray;
@@ -605,7 +621,7 @@ void piValueArrayResize(PiValueArray *const array, const uint32_t newCap);
     piValueArrayResize((array), (array)->cap ? (uint32_t)(size_t)((array)->cap * 2) : PI_DEFAULT_ARRAY_CAP)
 #endif
 
-static inline uint32_t piValueArrayPush(PiValueArray *const array, const PiValue value)
+PI_InlineApi(uint32_t) piValueArrayPush(PiValueArray *const array, const PiValue value)
 {
     assert(array != NULL);
 
@@ -623,31 +639,35 @@ static inline uint32_t piValueArrayPush(PiValueArray *const array, const PiValue
     ((array)->count == 0)
 #endif
 
-static inline PiValue piValueArrayTop(const PiValueArray *const array)
+PI_InlineApi(PiValue) piValueArrayTop(const PiValueArray *const array)
 {
     assert(array != NULL);
 
-    if (PI_ValueArrayIsEmpty(array))
+#if PI_DEBUG
+    if (PI_UNLIKELY(PI_ValueArrayIsEmpty(array)))
         piRaiseError("stack underflow", NULL);
+#endif
 
     return array->data[array->count - 1];
 }
 
-static inline PiValue piValueArrayPop(PiValueArray *const array)
+PI_InlineApi(PiValue) piValueArrayPop(PiValueArray *const array)
 {
     assert(array != NULL);
 
-    if (PI_ValueArrayIsEmpty(array))
+#if PI_DEBUG
+    if (PI_UNLIKELY(PI_ValueArrayIsEmpty(array)))
         piRaiseError("stack underflow", NULL);
+#endif
 
     return array->data[--array->count];
 }
 
-static inline PiValue piValueArrayGet(PiValueArray *const array, const uint32_t index)
+PI_InlineApi(PiValue) piValueArrayGet(PiValueArray *const array, const uint32_t index)
 {
     assert(array != NULL);
 
-    if (PI_ValueArrayIsEmpty(array))
+    if (PI_UNLIKELY(PI_ValueArrayIsEmpty(array)))
         piRaiseError("index out of bounds (the array is empty)", NULL);
 
     return array->data[index];

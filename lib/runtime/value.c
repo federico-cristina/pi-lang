@@ -1,4 +1,4 @@
-﻿#include "pi/runtime/value.h"
+#include "pi/runtime/value.h"
 
 /* =---- Values ------------------------------------------------= */
 
@@ -76,6 +76,33 @@ uint32_t piValueGetHashCode(const PiValue value)
     case PI_VALUE_TYPE_REAL:
         hashCode = pi_GetRealHashCode(piAsReal(value));
         break;
+    case PI_VALUE_TYPE_OBJC:
+    {
+        PiObject *obj = piAsObject(value);
+
+        if (!obj)
+        {
+            hashCode = 0;
+            break;
+        }
+
+        switch (obj->type)
+        {
+        case PI_OBJECT_TYPE_STRING:
+        {
+            PiStringObject *str = (PiStringObject *)obj;
+            hashCode = str->hash; /* Return cached hash */
+            break;
+        }
+        /* Future types: compute hash */
+        default:
+            /* Pointer hash for other types */
+            hashCode = PI_HashCodeUInt64((uintptr_t)obj);
+            break;
+        }
+
+        break;
+    }
 
     default:
         piUnreachable();
@@ -289,8 +316,65 @@ bool piValueEqualsTo(const PiValue lValue, const PiValue rValue)
         result = pi_RealEqualsTo(piAsReal(lValue), rValue);
         break;
     case PI_VALUE_TYPE_OBJC:
-        piNotImpl();
+    {
+        PiObject *lObj = piAsObject(lValue);
+        PiObject *rObj = piAsObject(rValue);
+
+        /* Pointer equality first (fast path) */
+        if (lObj == rObj)
+        {
+            result = true;
+            break;
+        }
+
+        if (!lObj || !rObj)
+        {
+            result = false;
+            break;
+        }
+
+        /* Type mismatch check */
+        if (!piIsObject(rValue) || lObj->type != rObj->type)
+        {
+            result = false;
+            break;
+        }
+
+        /* Type-specific equality */
+        switch (lObj->type)
+        {
+        case PI_OBJECT_TYPE_STRING:
+        {
+            PiStringObject *lStr = (PiStringObject *)lObj;
+            PiStringObject *rStr = (PiStringObject *)rObj;
+
+            /* Length mismatch - early exit */
+            if (lStr->length != rStr->length)
+            {
+                result = false;
+                break;
+            }
+
+            /* Hash mismatch - early exit */
+            if (lStr->hash != rStr->hash)
+            {
+                result = false;
+                break;
+            }
+
+            /* Byte-by-byte comparison */
+            result = (memcmp(lStr->data, rStr->data, lStr->length) == 0);
+            break;
+        }
+        /* Future types: implement equality */
+        default:
+            /* Default: pointer equality */
+            result = false;
+            break;
+        }
+
         break;
+    }
 
     default:
         piUnreachable();
@@ -681,8 +765,44 @@ int piPrintValueTo(FILE *const stream, const PiValue value)
         result = PI_fprintf(stream, PI_RealLiteralColor("%G"), piAsReal(value));
         break;
     case PI_VALUE_TYPE_OBJC:
-        piNotImpl();
+    {
+        PiObject *obj = piAsObject(value);
+
+        if (!obj)
+        {
+            result = PI_fprintf(stream, PI_KeywordColor("null"));
+            break;
+        }
+
+        switch (obj->type)
+        {
+        case PI_OBJECT_TYPE_STRING:
+        {
+            PiStringObject *str = (PiStringObject *)obj;
+            result = PI_fprintf(stream, PI_DARK_YELLOW "\"" PI_RESET);
+
+            /* Print string with escape sequences */
+            for (uint32_t i = 0; i < str->length; i++)
+            {
+                const char c = str->data[i];
+                const char *format = pi_GetCharFormat(c, '"');
+                result += PI_fprintf(stream, format, c);
+            }
+
+            result += PI_fprintf(stream, PI_DARK_YELLOW "\"" PI_RESET);
+            break;
+        }
+        /* Future types: implement printing */
+        default:
+            result = PI_fprintf(stream,
+                PI_GRAY "<object:%p type=%d>" PI_RESET,
+                (void *)obj, obj->type
+            );
+            break;
+        }
+
         break;
+    }
 
     default:
         piUnreachable();
@@ -700,13 +820,17 @@ PiValueArray *piInitValueArray(PiValueArray *const array, const uint32_t initCap
 {
     assert(array != NULL);
 
-    if (initCap > 0)
-        array->data = piNewArray(PiValue, initCap);
-    else
-        array->data = NULL;
-
+    /* Start with inline buffer to avoid initial heap allocation */
+    array->data = array->inline_buffer;
     array->count = 0;
-    array->cap = initCap;
+    array->cap = PI_INLINE_STACK_SIZE;
+
+    /* If requested capacity exceeds inline buffer, allocate on heap */
+    if (initCap > PI_INLINE_STACK_SIZE)
+    {
+        array->data = PI_NewArray(PiValue, initCap);
+        array->cap = initCap;
+    }
 
     return array;
 }
@@ -715,7 +839,8 @@ PiValueArray *piFreeValueArray(PiValueArray *const array)
 {
     assert(array != NULL);
 
-    if (array->cap > 0)
+    /* Only free if heap-allocated (not using inline buffer) */
+    if (array->data != array->inline_buffer && array->data != NULL)
         free(array->data);
 
     array->data = NULL;
@@ -731,7 +856,21 @@ void piValueArrayResize(PiValueArray *const array, const uint32_t newCap)
 
     const uint32_t oldCap = array->cap;
 
-    array->data = piResize(PiValue, array->data, oldCap, newCap);
+    /* Check if currently using inline buffer */
+    if (array->data == array->inline_buffer)
+    {
+        /* First heap allocation: allocate new buffer and copy from inline */
+        array->data = PI_NewArray(PiValue, newCap);
+
+        /* Copy existing values from inline buffer to heap */
+        for (uint32_t i = 0; i < array->count && i < oldCap; i++)
+            array->data[i] = array->inline_buffer[i];
+    }
+    else
+    {
+        /* Regular heap reallocation */
+        array->data = PI_Resize(PiValue, array->data, oldCap, newCap);
+    }
 
     if (array->count > newCap)
         array->count = newCap - 1;

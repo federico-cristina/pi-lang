@@ -74,7 +74,7 @@ static inline PiString *pi_StringCopyTo(const PiString *const dest, const PiStri
 {
     assert(str != NULL);
 
-    PiString *const result = dest ? dest : PI_New(PiString);
+    PiString *const result = (PiString *)(dest ? dest : PI_New(PiString));
 
     result->chars = str->chars;
     result->count = str->count;
@@ -102,7 +102,7 @@ static inline PiString *pi_StringDupTo(const PiString *const dest, const PiStrin
 {
     assert(str != NULL);
 
-    PiString *const result = dest ? dest : PI_New(PiString);
+    PiString *const result = (PiString *)(dest ? dest : PI_New(PiString));
 
     if (str->chars)
         result->chars = (const char *)strncpy(PI_NewArray(char, str->count + 1), str->chars, str->count + 1);

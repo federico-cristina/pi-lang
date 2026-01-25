@@ -144,7 +144,7 @@ PI_NORET PI_Api(void) piRaiseErrorAt(const char *const func, const char *const f
  * @endcode
  */
 #   define piWarning(format, ...) \
-        do { piWarningAt(__func__, __FILE__, __LINE__, format, __VA_ARGS__); } while(0)
+    piWarningAt(__func__, __FILE__, __LINE__, format, __VA_ARGS__)
 #endif
 
 #ifndef piError
@@ -162,7 +162,7 @@ PI_NORET PI_Api(void) piRaiseErrorAt(const char *const func, const char *const f
  * @endcode
  */
 #   define piError(format, ...) \
-        do { piErrorAt(__func__, __FILE__, __LINE__, format, __VA_ARGS__); } while(0)
+    piErrorAt(__func__, __FILE__, __LINE__, format, __VA_ARGS__)
 #endif
 
 #ifndef piFatal
@@ -180,7 +180,7 @@ PI_NORET PI_Api(void) piRaiseErrorAt(const char *const func, const char *const f
  * @endcode
  */
 #   define piFatal(format, ...) \
-        do { piFatalErrorAt(__func__, __FILE__, __LINE__, format, __VA_ARGS__); } while(0)
+    piFatalErrorAt(__func__, __FILE__, __LINE__, format, __VA_ARGS__)
 #endif
 
 #ifndef piUnreachable
@@ -203,7 +203,7 @@ PI_NORET PI_Api(void) piRaiseErrorAt(const char *const func, const char *const f
  * @endcode
  */
 #   define piUnreachable() \
-        do { piFatal("unreachable code has been reached", NULL); } while(0)
+    piFatal("unreachable code has been reached", NULL)
 #endif
 
 #ifndef piNotImpl
@@ -223,7 +223,7 @@ PI_NORET PI_Api(void) piRaiseErrorAt(const char *const func, const char *const f
  * @endcode
  */
 #   define piNotImpl() \
-        do { piFatal("not implemented yet", NULL); } while(0)
+    piFatal("not implemented yet", NULL)
 #endif
 
 #ifndef piRaiseError
@@ -251,7 +251,7 @@ PI_NORET PI_Api(void) piRaiseErrorAt(const char *const func, const char *const f
  * @see     piSetErrorHandler()
  */
 #   define piRaiseError(format, ...) \
-        do { piRaiseErrorAt(__func__, __FILE__, __LINE__, format, __VA_ARGS__); } while(0)
+    piRaiseErrorAt(__func__, __FILE__, __LINE__, format, __VA_ARGS__)
 #endif
 
 /* =---- Recoverable Error Handling ----------------------------= */

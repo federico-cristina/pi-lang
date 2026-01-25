@@ -70,6 +70,31 @@ PI_C_HEADER_BEGIN
 #   define PI_CountOf(array) (sizeof(array) / sizeof(*(array)))
 #endif
 
+#ifndef PI_BitFlag
+/**
+ * @brief   Converts a 1-based position number to a bit flag value.
+ *
+ * @param x  Position number (1-based). If 0, returns 0.
+ *
+ * @return  Bit flag with the bit at position (x-1) set, or 0 if x is 0.
+ *
+ * @note    Position is 1-based: PI_BitFlag(1) = 0x01, PI_BitFlag(2) = 0x02, etc.
+ *          This is useful for defining sequential flag values from an enumeration.
+ *
+ * @example
+ * @code
+ *     enum { FLAG_NONE = 0, FLAG_READ = 1, FLAG_WRITE = 2, FLAG_EXEC = 3 };
+ *
+ *     int readFlag  = PI_BitFlag(FLAG_READ);   // Returns 1  (0b0001)
+ *     int writeFlag = PI_BitFlag(FLAG_WRITE);  // Returns 2  (0b0010)
+ *     int execFlag  = PI_BitFlag(FLAG_EXEC);   // Returns 4  (0b0100)
+ *     int noFlag    = PI_BitFlag(FLAG_NONE);   // Returns 0
+ * @endcode
+ */
+#   define PI_BitFlag(x) \
+    ((x) ? (1 << (x) - 1) : 0)
+#endif
+
 #ifndef PI_HasFlag
 /**
  * @brief   Checks if specific flags are set in a bitfield.
@@ -92,7 +117,7 @@ PI_C_HEADER_BEGIN
  * @endcode
  */
 #   define PI_HasFlag(x, flag) \
-        (((x) & (flag)) != 0)
+    (((x) & (flag)) != 0)
 #endif
 
 #ifndef PI_ShouldGrow
@@ -116,7 +141,7 @@ PI_C_HEADER_BEGIN
  * @endcode
  */
 #   define PI_ShouldGrow(cap, count, n) \
-        ((n) > (cap) - (count))
+    ((n) > (cap) - (count))
 #endif
 
 /* =---- Memory Allocation Functions ---------------------------= */
@@ -280,7 +305,7 @@ PI_Api(void) piFreeAligned(void *ptr);
  * @see     piMalloc(), PI_NewArray(), piFree()
  */
 #   define PI_New(Type) \
-        ((Type *)piMalloc(sizeof(Type)))
+    ((Type *)piMalloc(sizeof(Type)))
 #endif
 
 #ifndef PI_NewArray
@@ -302,7 +327,7 @@ PI_Api(void) piFreeAligned(void *ptr);
  * @see     piCalloc(), PI_New(), piFree()
  */
 #   define PI_NewArray(Type, count) \
-        ((Type *)piCalloc((count), sizeof(Type)))
+    ((Type *)piCalloc((count), sizeof(Type)))
 #endif
 
 #ifndef PI_Resize
@@ -327,7 +352,7 @@ PI_Api(void) piFreeAligned(void *ptr);
  * @see     piResize()
  */
 #   define PI_Resize(Type, block, oldSize, newSize) \
-        ((Type *)piResize((void *)(block), sizeof(Type) * (oldSize), sizeof(Type) * (newSize)))
+    ((Type *)piResize((void *)(block), sizeof(Type) * (oldSize), sizeof(Type) * (newSize)))
 #endif
 
 /* =---- Memory Tracking (Optional) ----------------------------= */

@@ -29,3 +29,6 @@ CMakeUserPresets.json
 
 # Makefile ignored file
 Makefile
+
+# Backup directory
+.backups/

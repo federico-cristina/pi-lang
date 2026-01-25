@@ -5,7 +5,9 @@
 add_library(pi-lib-common
 	"arena.c"
 	"error.c"
+	"hash.c"
 	"memory.c"
+	"string.c"
 	"system.c"
 )
 

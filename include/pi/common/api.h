@@ -126,7 +126,39 @@
 #endif
 
 /**
- * +---- Function Declaration Macro -------+
+ * +---- Inline Specifiers -----------------+
+ */
+
+#ifndef PI_INLINE
+/**
+ * @brief   Declares a function as static inline.
+ *
+ *          Static inline functions are compiled into each translation unit
+ *          that includes them. They do not require DLL export/import.
+ */
+#   define PI_INLINE static inline
+#endif
+
+#ifndef PI_FORCEINLINE
+/**
+ * @brief   Compiler hint to always inline a function.
+ *
+ *          This is a stronger hint than PI_INLINE, telling the compiler
+ *          to inline the function even when optimizations are disabled.
+ *
+ * @note    This is only a hint; the compiler may still choose not to inline.
+ */
+#   if defined(_MSC_VER)
+#       define PI_FORCEINLINE static __forceinline
+#   elif defined(__GNUC__) || defined(__clang__)
+#       define PI_FORCEINLINE static inline __attribute__((always_inline))
+#   else
+#       define PI_FORCEINLINE static inline
+#   endif
+#endif
+
+/**
+ * +---- Function Declaration Macros -------+
  */
 
 #ifndef PI_Api
@@ -155,6 +187,29 @@
  *          Example: __declspec(dllexport) void __cdecl (on Windows when building DLL)
  */
 #   define PI_Api(T) PI_API T PI_CCONV
+#endif
+
+#ifndef PI_InlineApi
+/**
+ * @brief   Declares an inline function with return type T as part of the public API.
+ *
+ *          This macro is used for inline functions defined in public headers.
+ *          These functions are compiled into each translation unit and do not
+ *          require DLL symbol export. The macro provides consistency with PI_Api(T)
+ *          and marks the function as part of the public API.
+ *
+ * @param T The return type of the function.
+ *
+ * @example Basic usage:
+ * @code
+ *          // In header file:
+ *          PI_InlineApi(bool) piHasCapability(const PiCapabilityContext *ctx, PiCapability cap)
+ *          {
+ *              return ctx && (ctx->flags & (uint32_t)cap) == (uint32_t)cap;
+ *          }
+ * @endcode
+ */
+#   define PI_InlineApi(T) PI_API PI_INLINE T PI_CCONV
 #endif
 
 /**

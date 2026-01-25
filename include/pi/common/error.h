@@ -28,6 +28,8 @@
 /* Common defintions (and <setjmp.h> inclusion) */
 #include "pi/common/common.h"
 
+#include <stdarg.h>
+
 PI_C_HEADER_BEGIN
 
 /* =---- Error Title Constants ---------------------------------= */
@@ -85,9 +87,24 @@ PI_Api(void) piWarningAt(const char *const func, const char *const file, const i
  *
  * @note    Do not call this function directly. Use the piError() macro instead.
  *
- * @see     piError()
+ * @see     piError(), piErrorAtV()
  */
 PI_Api(void) piErrorAt(const char *const func, const char *const file, const int line, const char *const format, ...);
+/**
+ * @brief   Prints an error message to stderr with source location (va_list version).
+ *
+ * @param[in] func     Name of the function where the error occurred.
+ * @param[in] file     Source file name where the error occurred.
+ * @param     line     Line number in the source file.
+ * @param[in] format   Printf-style format string for the error message.
+ * @param     argList  Variable argument list initialized with va_start().
+ *
+ * @note    This is the va_list version of piErrorAt(), useful for implementing
+ *          custom error reporting functions that accept variadic arguments.
+ *
+ * @see     piErrorAt(), piError()
+ */
+PI_Api(void) piErrorAtV(const char *const func, const char *const file, const int line, const char *const format, va_list argList);
 
 /**
  * @brief   Prints a fatal error message and terminates the program.

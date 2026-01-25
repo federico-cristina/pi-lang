@@ -87,6 +87,13 @@ PI_Api(void) piErrorAt(const char *const func, const char *const file, const int
     return;
 }
 
+PI_Api(void) piErrorAtV(const char *const func, const char *const file, const int line, const char *const format, va_list argList)
+{
+    pi_ErrorAtV(func, file, line, PI_TITLE_ERROR, format, argList);
+
+    return;
+}
+
 PI_NORET PI_Api(void) piFatalErrorAt(const char *const func, const char *const file, const int line, const char *const format, ...)
 {
     va_list argList;

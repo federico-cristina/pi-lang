@@ -71,13 +71,13 @@ static int pi_Repl(void)
         jmp_buf replJmpBuf;
 
         /* Sets the repl error handler onto handlers stack */
-        pi_SetErrorHandler(&replJmpBuf);
+        piSetErrorHandler(&replJmpBuf);
 
         /* Recovery code */
         if (setjmp(replJmpBuf) != 0)
         {
             /* Notifies the pending execution abortion */
-            puts("\nAn error occurred: " PI_ErroneousColor2("Aborting") "...");
+            puts("\nAn error occurred: " PI_ErroneousColor("Aborting") "...");
 
             return PI_EXIT_ABORTED;
         }
@@ -97,6 +97,18 @@ static int pi_Repl(void)
         TODO: Eval and Print phases of REPL
 
          */
+
+        PiToken token;
+
+        do
+        {
+            piScanToken(&in, &token);
+
+            if (token.code == PI_TOKEN_ENDOF)
+                break;
+
+            fprintf(out, "[%d, %d] '%.*s'\n", token.line, token.column, (int)token.length, token.text);
+        } while (true);
     } while (keepRunning);
 
     /* Closes the source code stream */
@@ -130,9 +142,28 @@ static int pi_Main(const int argc, const char *const argv[])
 int main(const int argc, const char *const argv[])
 {
     int exitCode;
-
+    
     /* Configures the system before execution */
-    pi_InitSystem();
+    piInitSystem();
+
+    PiEnv env;
+
+    piInitEnv(&env);
+
+    void *block = piEnvAlloc(&env, 8000);
+
+    piEnvFree(&env, block);
+
+    block = piStringNew(&env, "Hello, world!", 13);
+
+    PiEnv child;
+
+    piCreateChildEnv(&env, &child, PI_CAP_NONE, 0);
+    piCapabilityContextSetLimits(&child.caps, 0, 0, 0);
+
+    block = piEnvAlloc(&child, 8000);
+
+    piFreeEnv(&env);
 
     if (argc < 2)
         exitCode = pi_Repl();
@@ -140,7 +171,7 @@ int main(const int argc, const char *const argv[])
         exitCode = pi_Main(argc, argv);
 
     /* Resets system configuration after execution */
-    pi_FreeSystem();
+    piFreeSystem();
 
     return exitCode;
 }

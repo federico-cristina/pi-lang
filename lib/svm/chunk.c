@@ -25,16 +25,16 @@ PiSvmChunk *piFreeSvmChunk(PiSvmChunk *const chunk)
 {
     assert(chunk != NULL);
 
-    /* Releases resources used to store the actual bytecode */
+    /* Releases resources used to store the actual bytecode (cache-aligned) */
     if (chunk->cap > 0)
-        free(chunk->code);
+        piFree(chunk->code);
 
     chunk->code = NULL;
     chunk->count = 0;
     chunk->cap = 0;
-    
+
     piFreeValueArray(&chunk->data);
-    
+
     chunk->lines = NULL;
 
     return chunk;
@@ -44,7 +44,7 @@ void piSvmChunkPushLine(PiSvmChunk *const chunk, const uint32_t lineNumber, cons
 {
     assert(chunk != NULL);
 
-    PiSvmLineInfo *const lineInfo = piNew(PiSvmLineInfo);
+    PiSvmLineInfo *const lineInfo = PI_New(PiSvmLineInfo);
 
     lineInfo->text = line;
     lineInfo->line = lineNumber;
@@ -67,7 +67,7 @@ static inline void pi_SvmChunkGrow(PiSvmChunk *const chunk)
         oldCap = chunk->cap,
         newCap = PI_GrowCap(oldCap);
 
-    chunk->code = piResize(uint8_t, chunk->code, oldCap, newCap);
+    chunk->code = PI_Resize(uint8_t, chunk->code, oldCap, newCap);
     chunk->cap = newCap;
 
     return;

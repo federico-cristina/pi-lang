@@ -10,11 +10,14 @@
 
 /* =---- Stack-VM Disassembler ---------------------------------= */
 
-void piDisasmSvmChunk(FILE *const stream, const PiSvmChunk *const chunk, const char *const name)
+void piDisasmSvmChunk(FILE *const stream, const PiSvmChunk *const chunk, const char *const name, const uint32_t indent)
 {
     assert(chunk != NULL);
     
     const uint32_t lineMaxDigits = chunk->lines ? PI_GetDigitsCount(chunk->lines->line) : 0;
+
+    for (uint32_t i = 0; i < indent; i++)
+        fputc(' ', stream);
 
     /* Prints the initial notice */
     fprintf(stream, "Disassembling %s:\n",
@@ -48,15 +51,20 @@ void piDisasmSvmChunk(FILE *const stream, const PiSvmChunk *const chunk, const c
                         while (isspace(*text))
                             ++text;
 
-                        fprintf(stream, "\n" PI_GRAY "-- %s" PI_RESET "\n", text);
+                        fprintf(stream, "\n%*s" PI_GRAY "-- %s" PI_RESET "\n", indent, "", text);
                     }
 
-                    fprintf(stream, "  %*d", lineMaxDigits, tmp = lineInfo->line);
+                    fprintf(stream, "  %*d", lineMaxDigits + indent, tmp = lineInfo->line);
                 }
                 else
                 {
-                    fprintf(stream, "  %*s", lineMaxDigits, "|");
+                    fprintf(stream, "  %*s", lineMaxDigits + indent, "|");
                 }
+            }
+            else
+            {
+                for (uint32_t i = 0; i < indent; i++)
+                    fputc(' ', stream);
             }
 
             /* Prints offset and opcode mnemonic */
@@ -97,7 +105,7 @@ void piDisasmSvmChunk(FILE *const stream, const PiSvmChunk *const chunk, const c
         else
         {
             /* Error: Invalid opcode found! */
-            piRaiseError("found and invalid opcode " PI_InvalidHexColor("0x%02" PRIX8) " during disassembling",
+            piRaiseError("found and invalid opcode " PI_ErroneousColor("0x%02" PRIX8) " during disassembling",
                 (uint8_t)opcode
             );
         }

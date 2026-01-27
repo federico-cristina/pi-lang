@@ -66,7 +66,7 @@ typedef enum _pi_svm_OpCode
  * @brief   This function maps opcodes to a mnemonic string that represents them in the assembler
  *          and disassembler.
  */
-static inline const char *piGetOpCodeName(const PiSvmOpCode opcode)
+PI_InlineApi(const char *) piGetOpCodeName(const PiSvmOpCode opcode)
 {
     const char *result;
 
@@ -102,7 +102,7 @@ static inline const char *piGetOpCodeName(const PiSvmOpCode opcode)
  * @brief   This function maps opcodes to a color string that represents them in the assembler
  *          and disassembler.
  */
-static inline const char *piGetOpCodeColor(const PiSvmOpCode opcode)
+PI_InlineApi(const char *) piGetOpCodeColor(const PiSvmOpCode opcode)
 {
     const char *result;
 

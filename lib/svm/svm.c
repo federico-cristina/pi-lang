@@ -41,6 +41,99 @@ static int pi_SvmLoop(PiEnv *const env, const PiSvmChunk *const chunk, PiValueAr
     /* Pointer to the next instruction to be executed */
     const uint8_t *ip = (const uint8_t *)chunk->code;
 
+#pragma push_macro("DISPATCH")
+#pragma push_macro("CASE")
+#pragma push_macro("NEXT")
+    
+#if PI_USE_JUMP_TABLE
+    /* Computed goto dispatch table (direct threading) */
+    static const void* dispatch_table[PI_SVM_OP_COUNT] =
+    {
+        [PI_SVM_OP_NOP]     = &&_L_OP_NOP,
+        [PI_SVM_OP_EXIT]    = &&_L_OP_EXIT,
+        [PI_SVM_OP_RET]     = &&_L_OP_RET,
+
+        /**
+         * +---- DATA TRANSFER OPCODES ------------+
+         */
+
+        [PI_SVM_OP_LDC]     = &&_L_OP_LDC,
+        [PI_SVM_OP_LDI]     = &&_L_OP_LDI,
+
+        /**
+         * +---- STACK OPCODES --------------------+
+         */
+
+        [PI_SVM_OP_POP]     = &&_L_OP_POP,
+        [PI_SVM_OP_DUP]     = &&_L_OP_DUP,
+
+        /**
+         * +---- BITWISE OPCODES ------------------+
+         */
+
+        [PI_SVM_OP_BNOT]    = &&_L_OP_BNOT,
+        [PI_SVM_OP_BAND]    = &&_L_OP_BAND,
+        [PI_SVM_OP_BOR]     = &&_L_OP_BOR,
+        [PI_SVM_OP_BXOR]    = &&_L_OP_BXOR,
+
+        /**
+         *  +---- LOGIC OPCODES --------------------+
+         */
+
+        [PI_SVM_OP_NOT]     = &&_L_OP_NOT,
+        [PI_SVM_OP_AND]     = &&_L_OP_AND,
+        [PI_SVM_OP_OR]      = &&_L_OP_OR,
+
+        /**
+         * +---- ARITHMETIC OPCODES ---------------+
+         */
+
+        [PI_SVM_OP_NEG]     = &&_L_OP_NEG,
+        [PI_SVM_OP_ADD]     = &&_L_OP_ADD,
+        [PI_SVM_OP_SUB]     = &&_L_OP_SUB,
+        [PI_SVM_OP_MUL]     = &&_L_OP_MUL,
+        [PI_SVM_OP_DIV]     = &&_L_OP_DIV,
+        [PI_SVM_OP_POW]     = &&_L_OP_POW,
+        [PI_SVM_OP_REM]     = &&_L_OP_REM,
+
+        /**
+         * +---- RELATIONAL OPCODES ---------------+
+         */
+        
+        [PI_SVM_OP_EQ]      = &&_L_OP_EQ,
+        [PI_SVM_OP_NE]      = &&_L_OP_NE,
+        [PI_SVM_OP_LT]      = &&_L_OP_LT,
+        [PI_SVM_OP_LE]      = &&_L_OP_LE,
+        [PI_SVM_OP_GT]      = &&_L_OP_GT,
+        [PI_SVM_OP_GE]      = &&_L_OP_GE,
+
+        /**
+         * +---- I/O OPCODES ----------------------+
+         */
+
+        [PI_SVM_OP_OUT]     = &&OP_OUT,
+
+        /**
+         * +---------------------------------------+
+         */
+    };
+
+#   define DISPATCH() \
+        goto *dispatch_table[*(ip++)]
+#   define CASE(op) \
+        _L_OP_ ## op:
+#   define NEXT() \
+        DISPATCH()
+#else
+    /* Traditional switch-case dispatch (fallback) */
+#   define DISPATCH() \
+        /* No op */
+#   define CASE(op) \
+        case PI_SVM_OP_ ## op:
+#   define NEXT() \
+        break
+#endif
+
     PiValue
         /* Unary operations register */
         val = PI_NULL,
@@ -51,11 +144,13 @@ static int pi_SvmLoop(PiEnv *const env, const PiSvmChunk *const chunk, PiValueAr
         /* Operation answer register */
         ans = PI_NULL;
 
+    /* Type check cache variables for binary operations */
+    PiValueType lhs_type, rhs_type;
     /* The result of this function */
     int exitCode = EXIT_SUCCESS;
 
     /* Sets the Stack-VM error handler onto handlers stack */
-    pi_SetErrorHandler(&svmJmpBuf);
+    piSetErrorHandler(&svmJmpBuf);
 
     /* Recovery code */
     if (setjmp(svmJmpBuf) != 0)
@@ -64,6 +159,13 @@ static int pi_SvmLoop(PiEnv *const env, const PiSvmChunk *const chunk, PiValueAr
     }
 
     /* Stack-VM loop */
+#if PI_USE_JUMP_TABLE
+    /* Computed goto dispatch: jump to first instruction */
+    DISPATCH();
+
+    CASE(NOP)
+#else
+    /* Traditional switch-case dispatch */
     do
     {
         /* Fetch opcode */
@@ -72,15 +174,16 @@ static int pi_SvmLoop(PiEnv *const env, const PiSvmChunk *const chunk, PiValueAr
         /* Dispatch opcode (decode + execute) */
         switch (opcode)
         {
-        case PI_SVM_OP_NOP:
+        CASE(NOP)
+#endif
             /* Does nothing */
-            break;
+            NEXT();
 
-        case PI_SVM_OP_EXIT:
+        CASE(EXIT)
             exitCode = *ip;
             goto _L_Exit;
-        case PI_SVM_OP_RET:
-            if (!empty())
+        CASE(RET)
+            if (PI_LIKELY(!empty()))
             {
                 val = pop();
 
@@ -111,10 +214,10 @@ static int pi_SvmLoop(PiEnv *const env, const PiSvmChunk *const chunk, PiValueAr
 
 #pragma region DATA TRANSFER OPCODES
 
-        case PI_SVM_OP_LDC:
+        CASE(LDC)
             push(K(*(ip++)));
             break;
-        case PI_SVM_OP_LDI:
+        CASE(LDI)
             push(I(*(ip++)));
             break;
 
@@ -126,10 +229,10 @@ static int pi_SvmLoop(PiEnv *const env, const PiSvmChunk *const chunk, PiValueAr
 
 #pragma region STACK OPCODES
 
-        case PI_SVM_OP_POP:
+        CASE(POP)
             pop();
             break;
-        case PI_SVM_OP_DUP:
+        CASE(DUP)
             push(peek());
             break;
 
@@ -141,7 +244,7 @@ static int pi_SvmLoop(PiEnv *const env, const PiSvmChunk *const chunk, PiValueAr
             
 #pragma region BITWISE OPCODES
 
-        case PI_SVM_OP_BNOT:
+        CASE(BNOT)
             val = pop();
 
             switch (piValueTypeOf(val))
@@ -160,11 +263,15 @@ static int pi_SvmLoop(PiEnv *const env, const PiSvmChunk *const chunk, PiValueAr
             
             goto _L_PushAns;
 
-        case PI_SVM_OP_BAND:
+        CASE(BAND)
             rhs = pop();
             lhs = pop();
 
-            switch (comb(piValueTypeOf(lhs), piValueTypeOf(rhs)))
+            /* Cache type checks to avoid redundant calls */
+            lhs_type = piValueTypeOf(lhs);
+            rhs_type = piValueTypeOf(rhs);
+
+            switch (comb(lhs_type, rhs_type))
             {
             case comb(PI_VALUE_TYPE_UINT, PI_VALUE_TYPE_UINT):
                 ans = piUInt(piAsUInt(lhs) & piAsUInt(rhs));
@@ -186,11 +293,15 @@ static int pi_SvmLoop(PiEnv *const env, const PiSvmChunk *const chunk, PiValueAr
             }
             
             goto _L_PushAns;
-        case PI_SVM_OP_BOR:
+        CASE(BOR)
             rhs = pop();
             lhs = pop();
 
-            switch (comb(piValueTypeOf(lhs), piValueTypeOf(rhs)))
+            /* Cache type checks to avoid redundant calls */
+            lhs_type = piValueTypeOf(lhs);
+            rhs_type = piValueTypeOf(rhs);
+
+            switch (comb(lhs_type, rhs_type))
             {
             case comb(PI_VALUE_TYPE_UINT, PI_VALUE_TYPE_UINT):
                 ans = piUInt(piAsUInt(lhs) | piAsUInt(rhs));
@@ -212,11 +323,15 @@ static int pi_SvmLoop(PiEnv *const env, const PiSvmChunk *const chunk, PiValueAr
             }
             
             goto _L_PushAns;
-        case PI_SVM_OP_BXOR:
+        CASE(BXOR)
             rhs = pop();
             lhs = pop();
 
-            switch (comb(piValueTypeOf(lhs), piValueTypeOf(rhs)))
+            /* Cache type checks to avoid redundant calls */
+            lhs_type = piValueTypeOf(lhs);
+            rhs_type = piValueTypeOf(rhs);
+
+            switch (comb(lhs_type, rhs_type))
             {
             case comb(PI_VALUE_TYPE_UINT, PI_VALUE_TYPE_UINT):
                 ans = piUInt(piAsUInt(lhs) ^ piAsUInt(rhs));
@@ -247,7 +362,7 @@ static int pi_SvmLoop(PiEnv *const env, const PiSvmChunk *const chunk, PiValueAr
 
 #pragma region LOGIC OPCODES
 
-        case PI_SVM_OP_NOT:
+        CASE(NOT)
             val = pop();
 
             switch (piValueTypeOf(val))
@@ -278,231 +393,21 @@ static int pi_SvmLoop(PiEnv *const env, const PiSvmChunk *const chunk, PiValueAr
             
             goto _L_PushAns;
 
-        case PI_SVM_OP_AND:
+        CASE(AND)
             rhs = pop();
             lhs = pop();
 
-            switch (comb(piValueTypeOf(lhs), piValueTypeOf(rhs)))
-            {
-            case comb(PI_VALUE_TYPE_NONE, PI_VALUE_TYPE_NONE):
-            case comb(PI_VALUE_TYPE_NONE, PI_VALUE_TYPE_BOOL):
-            case comb(PI_VALUE_TYPE_NONE, PI_VALUE_TYPE_CHAR):
-            case comb(PI_VALUE_TYPE_NONE, PI_VALUE_TYPE_UINT):
-            case comb(PI_VALUE_TYPE_NONE, PI_VALUE_TYPE_SINT):
-            case comb(PI_VALUE_TYPE_NONE, PI_VALUE_TYPE_REAL):
-                ans = PI_FALSE;
-                break;
+            /* Normalize both values to boolean and compute AND */
+            ans = piBool(piIsTrue(lhs) && piIsTrue(rhs));
 
-            case comb(PI_VALUE_TYPE_BOOL, PI_VALUE_TYPE_NONE):
-                ans = PI_FALSE;
-                break;
-            case comb(PI_VALUE_TYPE_BOOL, PI_VALUE_TYPE_BOOL):
-                ans = piBool(piAsBool(lhs) && piAsBool(rhs));
-                break;
-            case comb(PI_VALUE_TYPE_BOOL, PI_VALUE_TYPE_CHAR):
-                ans = piBool(piAsBool(lhs) && (bool)piAsChar(rhs));
-                break;
-            case comb(PI_VALUE_TYPE_BOOL, PI_VALUE_TYPE_UINT):
-                ans = piBool(piAsBool(lhs) && (bool)piAsUInt(rhs));
-                break;
-            case comb(PI_VALUE_TYPE_BOOL, PI_VALUE_TYPE_SINT):
-                ans = piBool(piAsBool(lhs) && (bool)piAsSInt(rhs));
-                break;
-            case comb(PI_VALUE_TYPE_BOOL, PI_VALUE_TYPE_REAL):
-                ans = piBool(piAsBool(lhs) && (bool)piAsReal(rhs));
-                break;
-
-            case comb(PI_VALUE_TYPE_CHAR, PI_VALUE_TYPE_NONE):
-                ans = PI_FALSE;
-                break;
-            case comb(PI_VALUE_TYPE_CHAR, PI_VALUE_TYPE_BOOL):
-                ans = piBool((bool)piAsChar(rhs) && piAsBool(rhs));
-                break;
-            case comb(PI_VALUE_TYPE_CHAR, PI_VALUE_TYPE_CHAR):
-                ans = piBool((bool)piAsChar(rhs) && (bool)piAsChar(rhs));
-                break;
-            case comb(PI_VALUE_TYPE_CHAR, PI_VALUE_TYPE_UINT):
-                ans = piBool((bool)piAsChar(rhs) && (bool)piAsUInt(rhs));
-                break;
-            case comb(PI_VALUE_TYPE_CHAR, PI_VALUE_TYPE_SINT):
-                ans = piBool((bool)piAsChar(rhs) && (bool)piAsSInt(rhs));
-                break;
-            case comb(PI_VALUE_TYPE_CHAR, PI_VALUE_TYPE_REAL):
-                ans = piBool((bool)piAsChar(rhs) && (bool)piAsReal(rhs));
-                break;
-
-            case comb(PI_VALUE_TYPE_UINT, PI_VALUE_TYPE_NONE):
-                ans = PI_FALSE;
-                break;
-            case comb(PI_VALUE_TYPE_UINT, PI_VALUE_TYPE_BOOL):
-                ans = piBool((bool)piAsUInt(rhs) && piAsBool(rhs));
-                break;
-            case comb(PI_VALUE_TYPE_UINT, PI_VALUE_TYPE_CHAR):
-                ans = piBool((bool)piAsUInt(rhs) && (bool)piAsChar(rhs));
-                break;
-            case comb(PI_VALUE_TYPE_UINT, PI_VALUE_TYPE_UINT):
-                ans = piBool((bool)piAsUInt(rhs) && (bool)piAsUInt(rhs));
-                break;
-            case comb(PI_VALUE_TYPE_UINT, PI_VALUE_TYPE_SINT):
-                ans = piBool((bool)piAsUInt(rhs) && (bool)piAsSInt(rhs));
-                break;
-            case comb(PI_VALUE_TYPE_UINT, PI_VALUE_TYPE_REAL):
-                ans = piBool((bool)piAsUInt(rhs) && (bool)piAsReal(rhs));
-                break;
-
-            case comb(PI_VALUE_TYPE_SINT, PI_VALUE_TYPE_NONE):
-                ans = PI_FALSE;
-                break;
-            case comb(PI_VALUE_TYPE_SINT, PI_VALUE_TYPE_BOOL):
-                ans = piBool((bool)piAsSInt(rhs) && piAsBool(rhs));
-                break;
-            case comb(PI_VALUE_TYPE_SINT, PI_VALUE_TYPE_CHAR):
-                ans = piBool((bool)piAsSInt(rhs) && (bool)piAsChar(rhs));
-                break;
-            case comb(PI_VALUE_TYPE_SINT, PI_VALUE_TYPE_UINT):
-                ans = piBool((bool)piAsSInt(rhs) && (bool)piAsUInt(rhs));
-                break;
-            case comb(PI_VALUE_TYPE_SINT, PI_VALUE_TYPE_SINT):
-                ans = piBool((bool)piAsSInt(rhs) && (bool)piAsSInt(rhs));
-                break;
-            case comb(PI_VALUE_TYPE_SINT, PI_VALUE_TYPE_REAL):
-                ans = piBool((bool)piAsSInt(rhs) && (bool)piAsReal(rhs));
-                break;
-
-            case comb(PI_VALUE_TYPE_REAL, PI_VALUE_TYPE_NONE):
-                ans = PI_FALSE;
-                break;
-            case comb(PI_VALUE_TYPE_REAL, PI_VALUE_TYPE_BOOL):
-                ans = piBool((bool)piAsReal(rhs) && piAsBool(rhs));
-                break;
-            case comb(PI_VALUE_TYPE_REAL, PI_VALUE_TYPE_CHAR):
-                ans = piBool((bool)piAsReal(rhs) && (bool)piAsChar(rhs));
-                break;
-            case comb(PI_VALUE_TYPE_REAL, PI_VALUE_TYPE_UINT):
-                ans = piBool((bool)piAsReal(rhs) && (bool)piAsUInt(rhs));
-                break;
-            case comb(PI_VALUE_TYPE_REAL, PI_VALUE_TYPE_SINT):
-                ans = piBool((bool)piAsReal(rhs) && (bool)piAsSInt(rhs));
-                break;
-            case comb(PI_VALUE_TYPE_REAL, PI_VALUE_TYPE_REAL):
-                ans = piBool((bool)piAsReal(rhs) && (bool)piAsReal(rhs));
-                break;
-
-            default:
-                piNotImpl();
-                break;
-            }
-            
             goto _L_PushAns;
-        case PI_SVM_OP_OR:
+        CASE(OR)
             rhs = pop();
             lhs = pop();
 
-            switch (comb(piValueTypeOf(lhs), piValueTypeOf(rhs)))
-            {
-            case comb(PI_VALUE_TYPE_NONE, PI_VALUE_TYPE_NONE):
-            case comb(PI_VALUE_TYPE_NONE, PI_VALUE_TYPE_BOOL):
-            case comb(PI_VALUE_TYPE_NONE, PI_VALUE_TYPE_CHAR):
-            case comb(PI_VALUE_TYPE_NONE, PI_VALUE_TYPE_UINT):
-            case comb(PI_VALUE_TYPE_NONE, PI_VALUE_TYPE_SINT):
-            case comb(PI_VALUE_TYPE_NONE, PI_VALUE_TYPE_REAL):
-                ans = piBool(piIsTrue(rhs));
-                break;
+            /* Normalize both values to boolean and compute OR */
+            ans = piBool(piIsTrue(lhs) || piIsTrue(rhs));
 
-            case comb(PI_VALUE_TYPE_BOOL, PI_VALUE_TYPE_NONE):
-                ans = lhs;
-                break;
-            case comb(PI_VALUE_TYPE_BOOL, PI_VALUE_TYPE_BOOL):
-                ans = piBool(piAsBool(lhs) || piAsBool(rhs));
-                break;
-            case comb(PI_VALUE_TYPE_BOOL, PI_VALUE_TYPE_CHAR):
-                ans = piBool(piAsBool(lhs) || (bool)piAsChar(rhs));
-                break;
-            case comb(PI_VALUE_TYPE_BOOL, PI_VALUE_TYPE_UINT):
-                ans = piBool(piAsBool(lhs) || (bool)piAsUInt(rhs));
-                break;
-            case comb(PI_VALUE_TYPE_BOOL, PI_VALUE_TYPE_SINT):
-                ans = piBool(piAsBool(lhs) || (bool)piAsSInt(rhs));
-                break;
-            case comb(PI_VALUE_TYPE_BOOL, PI_VALUE_TYPE_REAL):
-                ans = piBool(piAsBool(lhs) || (bool)piAsReal(rhs));
-                break;
-
-            case comb(PI_VALUE_TYPE_CHAR, PI_VALUE_TYPE_NONE):
-            case comb(PI_VALUE_TYPE_UINT, PI_VALUE_TYPE_NONE):
-            case comb(PI_VALUE_TYPE_SINT, PI_VALUE_TYPE_NONE):
-            case comb(PI_VALUE_TYPE_REAL, PI_VALUE_TYPE_NONE):
-                ans = piBool(piIsTrue(lhs));
-                break;
-            case comb(PI_VALUE_TYPE_CHAR, PI_VALUE_TYPE_BOOL):
-                ans = piBool((bool)piAsChar(rhs) || piAsBool(rhs));
-                break;
-            case comb(PI_VALUE_TYPE_CHAR, PI_VALUE_TYPE_CHAR):
-                ans = piBool((bool)piAsChar(rhs) || (bool)piAsChar(rhs));
-                break;
-            case comb(PI_VALUE_TYPE_CHAR, PI_VALUE_TYPE_UINT):
-                ans = piBool((bool)piAsChar(rhs) || (bool)piAsUInt(rhs));
-                break;
-            case comb(PI_VALUE_TYPE_CHAR, PI_VALUE_TYPE_SINT):
-                ans = piBool((bool)piAsChar(rhs) || (bool)piAsSInt(rhs));
-                break;
-            case comb(PI_VALUE_TYPE_CHAR, PI_VALUE_TYPE_REAL):
-                ans = piBool((bool)piAsChar(rhs) || (bool)piAsReal(rhs));
-                break;
-
-            case comb(PI_VALUE_TYPE_UINT, PI_VALUE_TYPE_BOOL):
-                ans = piBool((bool)piAsUInt(rhs) || piAsBool(rhs));
-                break;
-            case comb(PI_VALUE_TYPE_UINT, PI_VALUE_TYPE_CHAR):
-                ans = piBool((bool)piAsUInt(rhs) || (bool)piAsChar(rhs));
-                break;
-            case comb(PI_VALUE_TYPE_UINT, PI_VALUE_TYPE_UINT):
-                ans = piBool((bool)piAsUInt(rhs) || (bool)piAsUInt(rhs));
-                break;
-            case comb(PI_VALUE_TYPE_UINT, PI_VALUE_TYPE_SINT):
-                ans = piBool((bool)piAsUInt(rhs) || (bool)piAsSInt(rhs));
-                break;
-            case comb(PI_VALUE_TYPE_UINT, PI_VALUE_TYPE_REAL):
-                ans = piBool((bool)piAsUInt(rhs) || (bool)piAsReal(rhs));
-                break;
-
-            case comb(PI_VALUE_TYPE_SINT, PI_VALUE_TYPE_BOOL):
-                ans = piBool((bool)piAsSInt(rhs) || piAsBool(rhs));
-                break;
-            case comb(PI_VALUE_TYPE_SINT, PI_VALUE_TYPE_CHAR):
-                ans = piBool((bool)piAsSInt(rhs) || (bool)piAsChar(rhs));
-                break;
-            case comb(PI_VALUE_TYPE_SINT, PI_VALUE_TYPE_UINT):
-                ans = piBool((bool)piAsSInt(rhs) || (bool)piAsUInt(rhs));
-                break;
-            case comb(PI_VALUE_TYPE_SINT, PI_VALUE_TYPE_SINT):
-                ans = piBool((bool)piAsSInt(rhs) || (bool)piAsSInt(rhs));
-                break;
-            case comb(PI_VALUE_TYPE_SINT, PI_VALUE_TYPE_REAL):
-                ans = piBool((bool)piAsSInt(rhs) || (bool)piAsReal(rhs));
-                break;
-
-            case comb(PI_VALUE_TYPE_REAL, PI_VALUE_TYPE_BOOL):
-                ans = piBool((bool)piAsReal(rhs) || piAsBool(rhs));
-                break;
-            case comb(PI_VALUE_TYPE_REAL, PI_VALUE_TYPE_CHAR):
-                ans = piBool((bool)piAsReal(rhs) || (bool)piAsChar(rhs));
-                break;
-            case comb(PI_VALUE_TYPE_REAL, PI_VALUE_TYPE_UINT):
-                ans = piBool((bool)piAsReal(rhs) || (bool)piAsUInt(rhs));
-                break;
-            case comb(PI_VALUE_TYPE_REAL, PI_VALUE_TYPE_SINT):
-                ans = piBool((bool)piAsReal(rhs) || (bool)piAsSInt(rhs));
-                break;
-            case comb(PI_VALUE_TYPE_REAL, PI_VALUE_TYPE_REAL):
-                ans = piBool((bool)piAsReal(rhs) || (bool)piAsReal(rhs));
-                break;
-
-            default:
-                piNotImpl();
-                break;
-            }
-            
             goto _L_PushAns;
 
 #pragma endregion
@@ -513,7 +418,7 @@ static int pi_SvmLoop(PiEnv *const env, const PiSvmChunk *const chunk, PiValueAr
 
 #pragma region ARITHMETIC OPCODES
 
-        case PI_SVM_OP_NEG:
+        CASE(NEG)
             val = pop();
 
             switch (piValueTypeOf(val))
@@ -535,11 +440,37 @@ static int pi_SvmLoop(PiEnv *const env, const PiSvmChunk *const chunk, PiValueAr
 
             goto _L_PushAns;
 
-        case PI_SVM_OP_ADD:
+        CASE(ADD)
             rhs = pop();
             lhs = pop();
+            
+            /* Cache type checks to avoid redundant calls */
+            lhs_type = piValueTypeOf(lhs);
+            rhs_type = piValueTypeOf(rhs);
 
-            switch (comb(piValueTypeOf(lhs), piValueTypeOf(rhs)))
+            /* Fast path: both unsigned integers */
+            if (PI_LIKELY((lhs_type == PI_VALUE_TYPE_UINT) && (rhs_type == PI_VALUE_TYPE_UINT)))
+            {
+                ans = piUInt(piAsUInt(lhs) + piAsUInt(rhs));
+                goto _L_PushAns;
+            }
+            
+            /* Fast path: both reals */
+            if ((lhs_type == PI_VALUE_TYPE_REAL) && (rhs_type == PI_VALUE_TYPE_REAL))
+            {
+                ans = piReal(piAsReal(lhs) + piAsReal(rhs));
+                goto _L_PushAns;
+            }
+
+            /* Fast path: both signed integers */
+            if ((lhs_type == PI_VALUE_TYPE_SINT) && (rhs_type == PI_VALUE_TYPE_SINT))
+            {
+                ans = piSInt(piAsSInt(lhs) + piAsSInt(rhs));
+                goto _L_PushAns;
+            }
+
+            /* Slow path: mixed types (fall back to exhaustive switch) */
+            switch (comb(lhs_type, rhs_type))
             {
             case comb(PI_VALUE_TYPE_CHAR, PI_VALUE_TYPE_CHAR):
                 ans = piChar(piAsChar(lhs) + piAsChar(rhs));
@@ -551,9 +482,6 @@ static int pi_SvmLoop(PiEnv *const env, const PiSvmChunk *const chunk, PiValueAr
                 ans = piChar(piAsChar(lhs) + (char)piAsSInt(rhs));
                 break;
 
-            case comb(PI_VALUE_TYPE_UINT, PI_VALUE_TYPE_UINT):
-                ans = piUInt(piAsUInt(lhs) + piAsUInt(rhs));
-                break;
             case comb(PI_VALUE_TYPE_UINT, PI_VALUE_TYPE_SINT):
                 ans = piUInt(piAsUInt(lhs) + (pi_uint_t)piAsSInt(rhs));
                 break;
@@ -563,9 +491,6 @@ static int pi_SvmLoop(PiEnv *const env, const PiSvmChunk *const chunk, PiValueAr
 
             case comb(PI_VALUE_TYPE_SINT, PI_VALUE_TYPE_UINT):
                 ans = piSInt(piAsSInt(lhs) + (pi_sint_t)piAsUInt(rhs));
-                break;
-            case comb(PI_VALUE_TYPE_SINT, PI_VALUE_TYPE_SINT):
-                ans = piSInt(piAsSInt(lhs) + piAsSInt(rhs));
                 break;
             case comb(PI_VALUE_TYPE_SINT, PI_VALUE_TYPE_REAL):
                 ans = piSInt(piAsSInt(lhs) + (pi_sint_t)piAsReal(rhs));
@@ -577,9 +502,6 @@ static int pi_SvmLoop(PiEnv *const env, const PiSvmChunk *const chunk, PiValueAr
             case comb(PI_VALUE_TYPE_REAL, PI_VALUE_TYPE_SINT):
                 ans = piReal(piAsReal(lhs) + (double)piAsSInt(rhs));
                 break;
-            case comb(PI_VALUE_TYPE_REAL, PI_VALUE_TYPE_REAL):
-                ans = piReal(piAsReal(lhs) + piAsReal(rhs));
-                break;
 
             default:
                 piNotImpl();
@@ -589,12 +511,38 @@ static int pi_SvmLoop(PiEnv *const env, const PiSvmChunk *const chunk, PiValueAr
         _L_PushAns:
             push(ans);
 
-            break;
-        case PI_SVM_OP_SUB:
+            NEXT();
+        CASE(SUB)
             rhs = pop();
             lhs = pop();
 
-            switch (comb(piValueTypeOf(lhs), piValueTypeOf(rhs)))
+            /* Cache type checks to avoid redundant calls */
+            lhs_type = piValueTypeOf(lhs);
+            rhs_type = piValueTypeOf(rhs);
+
+            /* Fast path: both unsigned integers */
+            if (PI_LIKELY((lhs_type == PI_VALUE_TYPE_UINT) && (rhs_type == PI_VALUE_TYPE_UINT)))
+            {
+                ans = piUInt(piAsUInt(lhs) - piAsUInt(rhs));
+                goto _L_PushAns;
+            }
+            
+            /* Fast path: both reals */
+            if ((lhs_type == PI_VALUE_TYPE_REAL) && (rhs_type == PI_VALUE_TYPE_REAL))
+            {
+                ans = piReal(piAsReal(lhs) - piAsReal(rhs));
+                goto _L_PushAns;
+            }
+
+            /* Fast path: both signed integers */
+            if ((lhs_type == PI_VALUE_TYPE_SINT) && (rhs_type == PI_VALUE_TYPE_SINT))
+            {
+                ans = piSInt(piAsSInt(lhs) - piAsSInt(rhs));
+                goto _L_PushAns;
+            }
+
+            /* Slow path: mixed types (fall back to exhaustive switch) */
+            switch (comb(lhs_type, rhs_type))
             {
             case comb(PI_VALUE_TYPE_CHAR, PI_VALUE_TYPE_CHAR):
                 ans = piChar(piAsChar(lhs) - piAsChar(rhs));
@@ -606,9 +554,6 @@ static int pi_SvmLoop(PiEnv *const env, const PiSvmChunk *const chunk, PiValueAr
                 ans = piChar(piAsChar(lhs) - (char)piAsSInt(rhs));
                 break;
 
-            case comb(PI_VALUE_TYPE_UINT, PI_VALUE_TYPE_UINT):
-                ans = piUInt(piAsUInt(lhs) - piAsUInt(rhs));
-                break;
             case comb(PI_VALUE_TYPE_UINT, PI_VALUE_TYPE_SINT):
                 ans = piUInt(piAsUInt(lhs) - (pi_uint_t)piAsSInt(rhs));
                 break;
@@ -618,9 +563,6 @@ static int pi_SvmLoop(PiEnv *const env, const PiSvmChunk *const chunk, PiValueAr
 
             case comb(PI_VALUE_TYPE_SINT, PI_VALUE_TYPE_UINT):
                 ans = piSInt(piAsSInt(lhs) - (pi_sint_t)piAsUInt(rhs));
-                break;
-            case comb(PI_VALUE_TYPE_SINT, PI_VALUE_TYPE_SINT):
-                ans = piSInt(piAsSInt(lhs) - piAsSInt(rhs));
                 break;
             case comb(PI_VALUE_TYPE_SINT, PI_VALUE_TYPE_REAL):
                 ans = piSInt(piAsSInt(lhs) - (pi_sint_t)piAsReal(rhs));
@@ -632,9 +574,6 @@ static int pi_SvmLoop(PiEnv *const env, const PiSvmChunk *const chunk, PiValueAr
             case comb(PI_VALUE_TYPE_REAL, PI_VALUE_TYPE_SINT):
                 ans = piReal(piAsReal(lhs) - (double)piAsSInt(rhs));
                 break;
-            case comb(PI_VALUE_TYPE_REAL, PI_VALUE_TYPE_REAL):
-                ans = piReal(piAsReal(lhs) - piAsReal(rhs));
-                break;
 
             default:
                 piNotImpl();
@@ -642,15 +581,38 @@ static int pi_SvmLoop(PiEnv *const env, const PiSvmChunk *const chunk, PiValueAr
             }
 
             goto _L_PushAns;
-        case PI_SVM_OP_MUL:
+        CASE(MUL)
             rhs = pop();
             lhs = pop();
 
-            switch (comb(piValueTypeOf(lhs), piValueTypeOf(rhs)))
+            /* Cache type checks to avoid redundant calls */
+            lhs_type = piValueTypeOf(lhs);
+            rhs_type = piValueTypeOf(rhs);
+
+            /* Fast path: both unsigned integers */
+            if (PI_LIKELY((lhs_type == PI_VALUE_TYPE_UINT) && (rhs_type == PI_VALUE_TYPE_UINT)))
             {
-            case comb(PI_VALUE_TYPE_UINT, PI_VALUE_TYPE_UINT):
                 ans = piUInt(piAsUInt(lhs) * piAsUInt(rhs));
-                break;
+                goto _L_PushAns;
+            }
+            
+            /* Fast path: both reals */
+            if ((lhs_type == PI_VALUE_TYPE_REAL) && (rhs_type == PI_VALUE_TYPE_REAL))
+            {
+                ans = piReal(piAsReal(lhs) * piAsReal(rhs));
+                goto _L_PushAns;
+            }
+
+            /* Fast path: both signed integers */
+            if ((lhs_type == PI_VALUE_TYPE_SINT) && (rhs_type == PI_VALUE_TYPE_SINT))
+            {
+                ans = piSInt(piAsSInt(lhs) * piAsSInt(rhs));
+                goto _L_PushAns;
+            }
+
+            /* Slow path: mixed types (fall back to exhaustive switch) */
+            switch (comb(lhs_type, rhs_type))
+            {
             case comb(PI_VALUE_TYPE_UINT, PI_VALUE_TYPE_SINT):
                 ans = piUInt(piAsUInt(lhs) * (pi_uint_t)piAsSInt(rhs));
                 break;
@@ -660,9 +622,6 @@ static int pi_SvmLoop(PiEnv *const env, const PiSvmChunk *const chunk, PiValueAr
 
             case comb(PI_VALUE_TYPE_SINT, PI_VALUE_TYPE_UINT):
                 ans = piSInt(piAsSInt(lhs) * (pi_sint_t)piAsUInt(rhs));
-                break;
-            case comb(PI_VALUE_TYPE_SINT, PI_VALUE_TYPE_SINT):
-                ans = piSInt(piAsSInt(lhs) * piAsSInt(rhs));
                 break;
             case comb(PI_VALUE_TYPE_SINT, PI_VALUE_TYPE_REAL):
                 ans = piSInt(piAsSInt(lhs) * (pi_sint_t)piAsReal(rhs));
@@ -674,9 +633,6 @@ static int pi_SvmLoop(PiEnv *const env, const PiSvmChunk *const chunk, PiValueAr
             case comb(PI_VALUE_TYPE_REAL, PI_VALUE_TYPE_SINT):
                 ans = piReal(piAsReal(lhs) * (double)piAsSInt(rhs));
                 break;
-            case comb(PI_VALUE_TYPE_REAL, PI_VALUE_TYPE_REAL):
-                ans = piReal(piAsReal(lhs) * piAsReal(rhs));
-                break;
 
             default:
                 piNotImpl();
@@ -684,19 +640,45 @@ static int pi_SvmLoop(PiEnv *const env, const PiSvmChunk *const chunk, PiValueAr
             }
             
             goto _L_PushAns;
-        case PI_SVM_OP_DIV:
+        CASE(DIV)
             rhs = pop();
             lhs = pop();
 
             /* Checks if rhs is zero */
-            if (!piIsTrue(rhs))
-                ans = piReal(NAN);
-
-            switch (comb(piValueTypeOf(lhs), piValueTypeOf(rhs)))
+            if (PI_UNLIKELY(!piIsTrue(rhs)))
             {
-            case comb(PI_VALUE_TYPE_UINT, PI_VALUE_TYPE_UINT):
+                ans = piReal(NAN);
+                goto _L_PushAns;
+            }
+
+            /* Cache type checks to avoid redundant calls */
+            lhs_type = piValueTypeOf(lhs);
+            rhs_type = piValueTypeOf(rhs);
+
+            /* Fast path: both unsigned integers */
+            if (PI_LIKELY((lhs_type == PI_VALUE_TYPE_UINT) && (rhs_type == PI_VALUE_TYPE_UINT)))
+            {
                 ans = piUInt(piAsUInt(lhs) / piAsUInt(rhs));
-                break;
+                goto _L_PushAns;
+            }
+            
+            /* Fast path: both reals */
+            if ((lhs_type == PI_VALUE_TYPE_REAL) && (rhs_type == PI_VALUE_TYPE_REAL))
+            {
+                ans = piReal(piAsReal(lhs) / piAsReal(rhs));
+                goto _L_PushAns;
+            }
+
+            /* Fast path: both signed integers */
+            if ((lhs_type == PI_VALUE_TYPE_SINT) && (rhs_type == PI_VALUE_TYPE_SINT))
+            {
+                ans = piSInt(piAsSInt(lhs) / piAsSInt(rhs));
+                goto _L_PushAns;
+            }
+
+            /* Slow path: mixed types (fall back to exhaustive switch) */
+            switch (comb(lhs_type, rhs_type))
+            {
             case comb(PI_VALUE_TYPE_UINT, PI_VALUE_TYPE_SINT):
                 ans = piUInt(piAsUInt(lhs) / (pi_uint_t)piAsSInt(rhs));
                 break;
@@ -706,9 +688,6 @@ static int pi_SvmLoop(PiEnv *const env, const PiSvmChunk *const chunk, PiValueAr
 
             case comb(PI_VALUE_TYPE_SINT, PI_VALUE_TYPE_UINT):
                 ans = piSInt(piAsSInt(lhs) / (pi_sint_t)piAsUInt(rhs));
-                break;
-            case comb(PI_VALUE_TYPE_SINT, PI_VALUE_TYPE_SINT):
-                ans = piSInt(piAsSInt(lhs) / piAsSInt(rhs));
                 break;
             case comb(PI_VALUE_TYPE_SINT, PI_VALUE_TYPE_REAL):
                 ans = piSInt(piAsSInt(lhs) / (pi_sint_t)piAsReal(rhs));
@@ -720,9 +699,6 @@ static int pi_SvmLoop(PiEnv *const env, const PiSvmChunk *const chunk, PiValueAr
             case comb(PI_VALUE_TYPE_REAL, PI_VALUE_TYPE_SINT):
                 ans = piReal(piAsReal(lhs) / (double)piAsSInt(rhs));
                 break;
-            case comb(PI_VALUE_TYPE_REAL, PI_VALUE_TYPE_REAL):
-                ans = piReal(piAsReal(lhs) / piAsReal(rhs));
-                break;
 
             default:
                 piNotImpl();
@@ -730,17 +706,42 @@ static int pi_SvmLoop(PiEnv *const env, const PiSvmChunk *const chunk, PiValueAr
             }
             
             goto _L_PushAns;
-        case PI_SVM_OP_POW:
+
+            /* Double result register */
+            double d_ans;
+
+        CASE(POW)
             rhs = pop();
             lhs = pop();
 
-            switch (comb(piValueTypeOf(lhs), piValueTypeOf(rhs)))
-            {
-                double d_ans;
+            /* Cache type checks to avoid redundant calls */
+            lhs_type = piValueTypeOf(lhs);
+            rhs_type = piValueTypeOf(rhs);
 
-            case comb(PI_VALUE_TYPE_UINT, PI_VALUE_TYPE_UINT):
+            /* Fast path: both unsigned integers */
+            if (PI_LIKELY((lhs_type == PI_VALUE_TYPE_UINT) && (rhs_type == PI_VALUE_TYPE_UINT)))
+            {
                 d_ans = pow((double)piAsUInt(lhs), (double)piAsUInt(rhs));
                 goto _L_RoundUInt;
+            }
+            
+            /* Fast path: both reals */
+            if ((lhs_type == PI_VALUE_TYPE_REAL) && (rhs_type == PI_VALUE_TYPE_REAL))
+            {
+                ans = piReal(pow(piAsReal(lhs), piAsReal(rhs)));
+                goto _L_PushAns;
+            }
+
+            /* Fast path: both signed integers */
+            if ((lhs_type == PI_VALUE_TYPE_SINT) && (rhs_type == PI_VALUE_TYPE_SINT))
+            {
+                d_ans = pow((double)piAsSInt(lhs), (double)piAsSInt(rhs));
+                goto _L_RoundSInt;
+            }
+
+            /* Slow path: mixed types (fall back to exhaustive switch) */
+            switch (comb(lhs_type, rhs_type))
+            {
             case comb(PI_VALUE_TYPE_UINT, PI_VALUE_TYPE_SINT):
                 d_ans = pow((double)piAsUInt(lhs), (double)piAsSInt(rhs));
                 goto _L_RoundUInt;
@@ -750,13 +751,10 @@ static int pi_SvmLoop(PiEnv *const env, const PiSvmChunk *const chunk, PiValueAr
 
             _L_RoundUInt:
                 ans = piUInt((pi_uint_t)llround(d_ans));
-                break;
+                NEXT();
 
             case comb(PI_VALUE_TYPE_SINT, PI_VALUE_TYPE_UINT):
                 d_ans = pow((double)piAsSInt(lhs), (double)piAsUInt(rhs));
-                goto _L_RoundSInt;
-            case comb(PI_VALUE_TYPE_SINT, PI_VALUE_TYPE_SINT):
-                d_ans = pow((double)piAsSInt(lhs), (double)piAsSInt(rhs));
                 goto _L_RoundSInt;
             case comb(PI_VALUE_TYPE_SINT, PI_VALUE_TYPE_REAL):
                 d_ans = pow((double)piAsSInt(lhs), piAsReal(rhs));
@@ -764,16 +762,13 @@ static int pi_SvmLoop(PiEnv *const env, const PiSvmChunk *const chunk, PiValueAr
                 
             _L_RoundSInt:
                 ans = piSInt((pi_sint_t)llround(d_ans));
-                break;
+                NEXT();
 
             case comb(PI_VALUE_TYPE_REAL, PI_VALUE_TYPE_UINT):
                 ans = piReal(pow(piAsReal(lhs), (double)piAsUInt(rhs)));
                 break;
             case comb(PI_VALUE_TYPE_REAL, PI_VALUE_TYPE_SINT):
                 ans = piReal(pow(piAsReal(lhs), (double)piAsSInt(rhs)));
-                break;
-            case comb(PI_VALUE_TYPE_REAL, PI_VALUE_TYPE_REAL):
-                ans = piReal(pow(piAsReal(lhs), piAsReal(rhs)));
                 break;
 
             default:
@@ -782,19 +777,45 @@ static int pi_SvmLoop(PiEnv *const env, const PiSvmChunk *const chunk, PiValueAr
             }
             
             goto _L_PushAns;
-        case PI_SVM_OP_REM:
+        CASE(REM)
             rhs = pop();
             lhs = pop();
 
             /* Checks if rhs is zero */
-            if (!piIsTrue(rhs))
-                ans = piReal(NAN);
-
-            switch (comb(piValueTypeOf(lhs), piValueTypeOf(rhs)))
+            if (PI_UNLIKELY(!piIsTrue(rhs)))
             {
-            case comb(PI_VALUE_TYPE_UINT, PI_VALUE_TYPE_UINT):
+                ans = piReal(NAN);
+                goto _L_PushAns;
+            }
+
+            /* Cache type checks to avoid redundant calls */
+            lhs_type = piValueTypeOf(lhs);
+            rhs_type = piValueTypeOf(rhs);
+
+            /* Fast path: both unsigned integers */
+            if (PI_LIKELY((lhs_type == PI_VALUE_TYPE_UINT) && (rhs_type == PI_VALUE_TYPE_UINT)))
+            {
                 ans = piUInt(piAsUInt(lhs) % piAsUInt(rhs));
-                break;
+                goto _L_PushAns;
+            }
+            
+            /* Fast path: both reals */
+            if ((lhs_type == PI_VALUE_TYPE_REAL) && (rhs_type == PI_VALUE_TYPE_REAL))
+            {
+                ans = piReal(fmod(piAsReal(lhs), piAsReal(rhs)));
+                goto _L_PushAns;
+            }
+
+            /* Fast path: both signed integers */
+            if ((lhs_type == PI_VALUE_TYPE_SINT) && (rhs_type == PI_VALUE_TYPE_SINT))
+            {
+                ans = piSInt(piAsSInt(lhs) % piAsSInt(rhs));
+                goto _L_PushAns;
+            }
+
+            /* Slow path: mixed types (fall back to exhaustive switch) */
+            switch (comb(lhs_type, rhs_type))
+            {
             case comb(PI_VALUE_TYPE_UINT, PI_VALUE_TYPE_SINT):
                 ans = piUInt(piAsUInt(lhs) % (pi_uint_t)piAsSInt(rhs));
                 break;
@@ -804,9 +825,6 @@ static int pi_SvmLoop(PiEnv *const env, const PiSvmChunk *const chunk, PiValueAr
 
             case comb(PI_VALUE_TYPE_SINT, PI_VALUE_TYPE_UINT):
                 ans = piSInt(piAsSInt(lhs) % (pi_sint_t)piAsUInt(rhs));
-                break;
-            case comb(PI_VALUE_TYPE_SINT, PI_VALUE_TYPE_SINT):
-                ans = piSInt(piAsSInt(lhs) % piAsSInt(rhs));
                 break;
             case comb(PI_VALUE_TYPE_SINT, PI_VALUE_TYPE_REAL):
                 ans = piSInt(piAsSInt(lhs) % (pi_sint_t)piAsReal(rhs));
@@ -818,9 +836,6 @@ static int pi_SvmLoop(PiEnv *const env, const PiSvmChunk *const chunk, PiValueAr
             case comb(PI_VALUE_TYPE_REAL, PI_VALUE_TYPE_SINT):
                 ans = piReal(fmod(piAsReal(lhs), (double)piAsSInt(rhs)));
                 break;
-            case comb(PI_VALUE_TYPE_REAL, PI_VALUE_TYPE_REAL):
-                ans = piReal(fmod(piAsReal(lhs), piAsReal(rhs)));
-                break;
 
             default:
                 piNotImpl();
@@ -832,26 +847,51 @@ static int pi_SvmLoop(PiEnv *const env, const PiSvmChunk *const chunk, PiValueAr
 #pragma endregion
 
             /**
+             * +---- RELATIONAL OPCODES ---------------+
+             */
+
+#pragma region RELATIONAL OPCODES
+
+        CASE(EQ)
+
+            NEXT();
+
+#pragma endregion
+
+            /**
              * +---- I/O OPCODES ----------------------+
              */
 
 #pragma region I/O OPCODES
 
-        case PI_SVM_OP_OUT:
+        CASE(OUT)
             piPrintValue(pop());
-            break;
+            NEXT();
 
 #pragma endregion
 
             /**
              * +---------------------------------------+
              */
-
+            
+#if !PI_USE_JUMP_TABLE
         default:
-            piRaiseError("illegal Stack-VM opcode " PI_ErroneousColor2("%02" PRIX8), (uint8_t)opcode);
-            break;
+            piError("illegal Stack-VM opcode " PI_ErroneousColor("%02" PRIX8), (uint8_t)opcode);
+            /* Set a failure return code */
+            exitCode = EXIT_FAILURE;
+            /* Exits execution */
+            goto _L_Exit;
         }
     } while (true);
+#endif
+
+#undef DISPATCH
+#undef CASE
+#undef NEXT
+
+#pragma pop_macro("DISPATCH")
+#pragma pop_macro("CASE")
+#pragma pop_macro("NEXT")
 
 #undef push
 #undef peek
@@ -885,8 +925,14 @@ int piRunSvmChunk(PiEnv *const env, const PiSvmChunk *const chunk)
 
     piInitValueArray(&evalStack, PI_DEFAULT_ARRAY_CAP);
 
+    /* Register VM stack as GC root */
+    piGcSetVmStack(env, &evalStack);
+
     const int
         result = pi_SvmLoop(env, chunk, &evalStack);
+
+    /* Unregister VM stack */
+    piGcSetVmStack(env, NULL);
 
     piFreeValueArray(&evalStack);
 

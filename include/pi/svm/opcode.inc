@@ -52,6 +52,23 @@ PI_DefineOp(OP_POP,         0x1A, "pop",        PI_GRAY)
 PI_DefineOp(OP_DUP,         0x1B, "dup",        PI_BLUE)
 
 /**
+ * +---- JUMP OPCODES ---------------------+
+ */
+
+/**
+ * @brief   Jump - Unconditional jump.
+ */
+PI_DefineOp(OP_JMP,         0x2A, "jmp",        PI_DARK_MAGENTA)
+/**
+ * @brief   Jump if Zero - Jump if the top of the stack is zero.
+ */
+PI_DefineOp(OP_JZ,          0x2B, "jz",         PI_DARK_MAGENTA)
+/**
+ * @brief   Jump if Not Zero - Jump if the top of the stack is not zero.
+ */
+PI_DefineOp(OP_JNZ,         0x2C, "jnz",        PI_DARK_MAGENTA)
+
+/**
  * +---- BITWISE OPCODES ------------------+
  */
 
@@ -123,13 +140,42 @@ PI_DefineOp(OP_POW,         0x3E, "pow",        PI_DARK_YELLOW)
 PI_DefineOp(OP_REM,         0x3F, "rem",        PI_DARK_YELLOW)
 
 /**
+ * +---- RELATIONAL OPCODES ---------------+
+ */
+
+/**
+ * @brief   Equals - Object equality operation: requires at least two values into the stack.
+ */
+PI_DefineOp(OP_EQ,          0x40, "eq",         PI_DARK_YELLOW)
+/**
+ * @brief   Not Equals - Object inequality operation: requires at least two values into the stack.
+ */
+PI_DefineOp(OP_NE,          0x41, "ne",         PI_DARK_YELLOW)
+/**
+ * @brief   Less Than - Object less than comparison: requires at least two values into the stack.
+ */
+PI_DefineOp(OP_LT,          0x42, "lt",         PI_DARK_YELLOW)
+/**
+ * @brief   Less or Equal - Object less or equal to comparison: requires at least two values into the stack.
+ */
+PI_DefineOp(OP_LE,          0x43, "le",         PI_DARK_YELLOW)
+/**
+ * @brief   Greater Than - Object greater than comparison: requires at least two values into the stack.
+ */
+PI_DefineOp(OP_GT,          0x44, "gt",         PI_DARK_YELLOW)
+/**
+ * @brief   Greater or Equal - Object greater or equal to comparison: requires at least two values into the stack.
+ */
+PI_DefineOp(OP_GE,          0x45, "ge",         PI_DARK_YELLOW)
+
+/**
  * +---- I/O OPCODES ----------------------+
  */
 
 /**
  * @brief   Output - Prints on `stdout`: requires at least one value into the stack.
  */
-PI_DefineOp(OP_OUT,         0xA0, "out",        PI_BLINK_GRAY)
+PI_DefineOp(OP_OUT,         0xA0, "out",        PI_BLINK PI_GRAY)
 
 /**
  * +---------------------------------------+

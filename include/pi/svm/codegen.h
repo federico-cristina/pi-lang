@@ -16,25 +16,25 @@
  *              limitations under the License.
  */
 
-#ifndef _PI_SVM_DISASM_H
-#define _PI_SVM_DISASM_H
+#ifndef _PI_SVM_CODEGEN_H
+#define _PI_SVM_CODEGEN_H
 
 #include "pi/svm/chunk.h"
 
-#include <stdio.h>
-
 PI_C_HEADER_BEGIN
 
-/* =---- Stack-VM Disassembler ---------------------------------= */
+/* =---- Stack-VM Bytecode Generation --------------------------= */
 
 /**
- * @brief   Writes the disassembled chunk into a specific file stream.
- * 
- * @param[in] stream    The stream to which write.
- * @param[in] chunk     The chunk to disassemble.
- * @param     name      The name of the chunk.
+ * +---- CodeGen --------------------------+
  */
-void piDisasmSvmChunk(FILE *const stream, const PiSvmChunk *const chunk, const char *const name, const uint32_t indent);
+
+typedef struct _pi_svm_CodeGen
+{
+    void *_;
+} PiSvmCodeGen;
+
+
 
 /* =------------------------------------------------------------= */
 

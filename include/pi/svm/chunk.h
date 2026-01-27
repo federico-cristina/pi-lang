@@ -1,6 +1,10 @@
 ﻿#pragma once
 
 /**
+ * @file        chunk.h
+ *
+ * @author      Federico Crisitina <federico.cristina@outlook.it>
+ * 
  * @copyright   Copyright (c) 2025 Federico Cristina
  *
  *              Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,7 +23,9 @@
 #ifndef _PI_SVM_CHUNK_H
 #define _PI_SVM_CHUNK_H
 
+#include "pi/runtime/string.h"
 #include "pi/runtime/value.h"
+
 #include "pi/svm/opcode.h"
 
 PI_C_HEADER_BEGIN
@@ -55,30 +61,34 @@ typedef struct _pi_svm_LineInfo
 
 /**
  * @brief   This data structure represents a single portion of source code compiled into bytecode.
- * 
+ *
  *          By 'portion' we mean not only the bytecode itself, as a collection of bytes, but also
  *          the static data used in that area and debugging information.
+ *
+ * @note    Fields are ordered for cache efficiency: hot fields (frequently accessed during
+ *          VM execution) are grouped first, cold fields (used only during compilation or
+ *          debugging) are at the end.
  */
 typedef struct _pi_svm_Chunk
 {
     /**
-     * @brief   Represents the bytecode array.
+     * @brief   Represents the bytecode array (HOT: instruction pointer reads).
      */
     uint8_t        *code;
     /**
-     * @brief   Represents the number of bytes written to the array.
-     */
-    uint32_t        count;
-    /**
-     * @brief   Represents the maximum capacity of the array.
-     */
-    uint32_t        cap;
-    /**
-     * @brief   Represents the value constant pool.
+     * @brief   Represents the value constant pool (HOT: LDC operations).
      */
     PiValueArray    data;
     /**
-     * @brief   Represents source line informations.
+     * @brief   Represents the number of bytes written to the array (COLD: emission only).
+     */
+    uint32_t        count;
+    /**
+     * @brief   Represents the maximum capacity of the array (COLD: growth only).
+     */
+    uint32_t        cap;
+    /**
+     * @brief   Represents source line informations (COLD: debug/error reporting).
      */
     PiSvmLineInfo  *lines;
 } PiSvmChunk;
@@ -109,10 +119,39 @@ void piSvmChunkWriteShortOp(PiSvmChunk *const chunk, const PiSvmOpCode opcode, c
 /**
  * @brief   This function pushes a constant value into the constant values pool.
  */
-static inline uint32_t piSvmChunkAddConst(PiSvmChunk *const chunk, const PiValue value)
+PI_InlineApi(uint32_t) piSvmChunkAddConst(PiSvmChunk *const chunk, const PiValue value)
 {
     return piValueArrayPush(&chunk->data, value);
 }
+
+/**
+ * @brief   This function writes a constant-value loading operation.
+ */
+PI_InlineApi(void) piSvmChunkWriteLdC(PiSvmChunk *const chunk, const PiValue value)
+{
+    piSvmChunkWriteShortOp(chunk, PI_SVM_OP_LDC,
+        piSvmChunkAddConst(chunk, value)
+    );
+
+    return;
+}
+/**
+ * @brief   This function writes an immediate-value loading operation.
+ */
+PI_InlineApi(void) piSvmChunkWriteLdI(PiSvmChunk *const chunk, const uint8_t immediate)
+{
+    piSvmChunkWriteShortOp(chunk, PI_SVM_OP_LDI,
+        immediate
+    );
+
+    return;
+}
+
+/**
+ * +---- ChunkTable -----------------------+
+ */
+
+
 
 /* =------------------------------------------------------------= */
 

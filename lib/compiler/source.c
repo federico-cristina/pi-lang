@@ -1,8 +1,28 @@
-﻿#include "pi/compiler/source.h"
+﻿/**
+ * @file        source.c
+ *
+ * @copyright   Copyright (c) 2025 Federico Cristina
+ *
+ *              Licensed under the Apache License, Version 2.0 (the "License");
+ *              you may not use this file except in compliance with the License.
+ *              You may obtain a copy of the License at
+ *
+ *                  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *              Unless required by applicable law or agreed to in writing, software
+ *              distributed under the License is distributed on an "AS IS" BASIS,
+ *              WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *              See the License for the specific language governing permissions and
+ *              limitations under the License.
+ *
+ * @brief       Source stream implementation with multi-source support.
+ */
+
+#include "pi/compiler/source.h"
 
 #include <string.h>
 
-/* =---- Streams of Source Code --------------------------------= */
+/* =---- Source Streams ----------------------------------------= */
 
 #ifndef PI_DEFAULT_SOURCE_FOPEN_MODE
 #   define PI_DEFAULT_SOURCE_FOPEN_MODE "r"
@@ -68,7 +88,7 @@ static inline PiSource *pi_InitSourceBuffer(PiSource *const source, char *const 
 {
     /* If not specified a buffer, a new one is allocated */
     if (!buffer)
-        source->buffer = piNewArray(char, size);
+        source->buffer = PI_NewArray(char, size);
     else
         source->buffer = buffer;
 
@@ -95,7 +115,7 @@ static inline PiSource *pi_InitSourceStream(PiSource *const source, FILE *const 
     source->streamSize = pi_GetFileSize(stream);
 
     /* Gets default system page size */
-    const size_t pageSize = pi_GetPageSize();
+    const size_t pageSize = piGetPageSize();
 
     /* Initializes a new buffer */
     pi_InitSourceBuffer(source, NULL, source->streamSize > pageSize ? pageSize : source->streamSize);
@@ -298,7 +318,7 @@ static inline int pi_SourceReadFile(PiSource *const source)
         /* Sets the current position to the beginning of the buffer */
         source->currentPos.offset = 0;
         /* Sets the forward position to the delta */
-        source->currentPos.offset = posDelta;
+        source->forwardPos.offset = posDelta;
 
         /* Reads the character */
         result = pi_SourceRead(source);
@@ -324,7 +344,15 @@ static inline size_t pi_SourceReadLine(PiSource *const source)
             break;
 
         source->buffer[i++] = (char)c;
-    } while (i < source->bufferSize);
+    } while (i < (source->bufferSize - 2));
+
+    source->buffer[i + 0] = '\n';
+    source->buffer[i + 1] = '\0';
+
+    /* Sets the current position to the beginning of the buffer */
+    source->currentPos.offset = 0;
+    /* Sets the forward position to the beginning of the buffer */
+    source->forwardPos.offset = 0;
 
     return i;
 }
@@ -431,6 +459,55 @@ size_t piReplReadLine(PiSource *const source)
         piRaiseError("tried to read from a closed source stream", NULL);
 
     return pi_SourceReadLine(source);
+}
+
+/**
+ * +---- SourceSpan -----------------------+
+ */
+
+PiSourceSpan *piInitSourceSpan(PiSourceSpan *const sourceSpan, const PiSource *const source, const PiSourceSpanningMode spanningMode)
+{
+    assert(source != NULL);
+
+    PiSourceSpan *result;
+
+    if (sourceSpan)
+        result = sourceSpan;
+    else
+        result = PI_New(PiSourceSpan);
+
+    result->source = source;
+
+    switch (spanningMode)
+    {
+    case PI_SOURCE_SPAN_LEXEME:
+        result->text = strdup(piSourceGetRawLexeme(source));
+        result->length = piSourceGetLexemeLength(source);
+        /* Information about the position of the lexeme */
+        result->offset = source->currentPos.offset;
+        result->line = source->currentPos.line;
+        result->column = source->currentPos.column;
+        break;
+    case PI_SOURCE_SPAN_LINE:
+        result->text = strdup(piSourceGetRawLine(source));
+        result->length = piSourceGetLineLength(source);
+        /* Information about the starting position of the line */
+        result->offset = 0;
+        result->line = source->currentPos.line;
+        result->column = source->currentPos.column;
+        break;
+
+    default:
+        piUnreachable();
+        break;
+    }
+
+    return result;
+}
+
+PiSourceSpan *piFreeSourceSpan(PiSourceSpan *const sourceSpan)
+{
+
 }
 
 /* =------------------------------------------------------------= */

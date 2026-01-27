@@ -35,6 +35,8 @@
 
 /* Include runtime value and value array structures */
 #include "pi/runtime/value.h"
+/* Include environments managagement */
+#include "pi/runtime/env.h"
 
 /**
  * +---- Stack-VM Headers -----------------+
@@ -56,6 +58,8 @@
 
 /* Include streams of source code management */
 #include "pi/compiler/source.h"
+/* Include lexical anlysis tools */
+#include "pi/compiler/lexer.h"
 
 /**
  * +---------------------------------------+

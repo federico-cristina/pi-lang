@@ -1,6 +1,8 @@
 ﻿#pragma once
 
 /**
+ * @file        source.h
+ *
  * @copyright   Copyright (c) 2025 Federico Cristina
  *
  *              Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,6 +16,8 @@
  *              WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *              See the License for the specific language governing permissions and
  *              limitations under the License.
+ *
+ * @brief       Source stream abstraction for text, files, and REPL input.
  */
 
 #ifndef _PI_COMPILER_SOURCE_H
@@ -54,7 +58,7 @@ typedef struct _pi_SourcePosition
  * 
  * @param[in] pos   A pointer to the position marker to reset or initialize.
  */
-static inline void piResetSourcePosition(PiSourcePos *const pos)
+PI_InlineApi(void) piResetSourcePosition(PiSourcePos *const pos)
 {
     assert(pos != NULL);
 
@@ -274,7 +278,7 @@ void piSourceRetreat(PiSource *const source);
  * 
  * @return  `true` if `piSourcePeek(source)` equals `c`; otherwise `false`.
  */
-static inline bool piSourceCheck(const PiSource *const source, const int c)
+PI_InlineApi(bool) piSourceCheck(const PiSource *const source, const int c)
 {
     return piSourcePeek(source) == c;
 }
@@ -289,7 +293,7 @@ static inline bool piSourceCheck(const PiSource *const source, const int c)
  * @return  `true` if the source matched the value and was advanced (`piSourceRead` called); `false` if there
  *          was no match.
  */
-static inline bool piSourceMatch(PiSource *const source, const int c)
+PI_InlineApi(bool) piSourceMatch(PiSource *const source, const int c)
 {
     const bool result = piSourceCheck(source, c);
 
@@ -315,7 +319,7 @@ typedef bool (*PiPredicateFn)(const int);
  * 
  * @return  The boolean result produced by calling predicate on the value returned from piSourcePeek(source).
  */
-static inline bool piSourceCheckPred(const PiSource *const source, const PiPredicateFn predicate)
+PI_InlineApi(bool) piSourceCheckPred(const PiSource *const source, const PiPredicateFn predicate)
 {
     return predicate(piSourcePeek(source));
 }
@@ -328,7 +332,7 @@ static inline bool piSourceCheckPred(const PiSource *const source, const PiPredi
  * 
  * @return  The boolean result produced by calling predicate on the value returned from piSourcePeek(source).
  */
-static inline bool piSourceMatchPred(PiSource *const source, const PiPredicateFn predicate)
+PI_InlineApi(bool) piSourceMatchPred(PiSource *const source, const PiPredicateFn predicate)
 {
     const bool result = piSourceCheckPred(source, predicate);
 
@@ -336,6 +340,55 @@ static inline bool piSourceMatchPred(PiSource *const source, const PiPredicateFn
         piSourceRead(source);
 
     return result;
+}
+
+/**
+ * @brief   Returns a pointer to the beginning of the read lexeme.
+ */
+PI_InlineApi(const char *) piSourceGetRawLexeme(const PiSource *const source)
+{
+    return (const char *)&source->buffer[source->currentPos.offset];
+}
+/**
+ * @brief   Returns the length of the read lexme.
+ */
+PI_InlineApi(uint32_t) piSourceGetLexemeLength(const PiSource *const source)
+{
+    return (uint32_t)(source->forwardPos.offset - source->currentPos.offset);
+}
+
+/**
+ * @brief   Returns a pointer to the beginning of the line.
+ */
+PI_InlineApi(const char *) piSourceGetRawLine(const PiSource *const source)
+{
+    /* Starts from the beginning of the current lexeme */
+    const char *p = piSourceGetRawLexeme(source);
+
+    /* Searches for the beginning of the line */
+    while (((p - source->buffer) > 0) && (*(p - 1) != '\n'))
+        --p;
+
+    /* Returns the beginning of the line */
+    return p;
+}
+/**
+ * @brief   Returns the length of the line.
+ */
+PI_InlineApi(uint32_t) piSourceGetLineLength(const PiSource *const source)
+{
+    const char
+        /* An immutable pointer to the beginning of the line */
+        *const pStart = piSourceGetRawLine(source),
+        /* A mutable pointer that will scan the line */
+        *p = pStart;
+
+    /* Searches for the ending of the line */
+    while ((((source->buffer + source->bufferSize) - p) > 0) && (*(p - 1) != '\n'))
+        ++p;
+
+    /* Returns the endind of the line */
+    return (uint32_t)(p - pStart);
 }
 
 /**
@@ -358,6 +411,59 @@ PiSource *piOpenReplStream(PiSource *const source, const char *const name, FILE 
  * @brief   This functions read a line from the interactive REPL stream.
  */
 size_t piReplReadLine(PiSource *const source);
+
+/**
+ * +---- SourceSpan -----------------------+
+ */
+
+/**
+ * @brief   Represents a span of source code.
+ */
+typedef struct _pi_SourceSpan
+{
+    /**
+     * @brief   Represents a pointer to source information.
+     */
+    const PiSource *source;
+    /**
+     * @brief   Represents a pointer to the start of the span.
+     */
+    const char     *text;
+    /**
+     * @brief   Represents the length (in bytes) of the span of text.
+     */
+    uint32_t        length;
+    /**
+     * @brief   Represents the offset from the start of the stream.
+     */
+    uint32_t        offset;
+    /**
+     * @brief   Represents the line number of the span.
+     */
+    uint32_t        line;
+    /**
+     * @brief   Represents the column number of the span.
+     */
+    uint32_t        column;
+} PiSourceSpan;
+
+/**
+ * @brief   Represents the modality with which are created source spans.
+ */
+typedef enum _pi_SourceSpanningMode
+{
+    /**
+     * @brief   Creates a span from the beginning to the end of the current lexeme.
+     */
+    PI_SOURCE_SPAN_LEXEME,
+    /**
+     * @brief   Creates a span from the beginning to the end of the current line.
+     */
+    PI_SOURCE_SPAN_LINE,
+} PiSourceSpanningMode;
+
+PiSourceSpan *piInitSourceSpan(PiSourceSpan *const sourceSpan, const PiSource *const source, const PiSourceSpanningMode spanningMode);
+PiSourceSpan *piFreeSourceSpan(PiSourceSpan *const sourceSpan);
 
 /* =------------------------------------------------------------= */
 

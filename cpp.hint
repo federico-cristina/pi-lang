@@ -7,3 +7,4 @@
 #define pop() piValueArrayPop(&svm->stack)
 #define push(value) piValueArrayPush(&svm->stack, value)
 #define piNotImpl() piFatal("not implemented yet", NULL)
+#define PI_Api(T)

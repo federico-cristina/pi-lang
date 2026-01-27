@@ -1,20 +1,20 @@
-# Arena allocator test
+# Common Hash Table Library Test
 
 # Create test executable
-add_executable(pi-test-arena
+add_executable(pi-test-common-hash
 	"test.c"
 )
 
 # Link against library being tested
-target_link_libraries(pi-test-arena
+target_link_libraries(pi-test-common-hash
     PRIVATE pi::common
 )
 
 # Compile definitions (use DLL import when linking shared)
-target_compile_definitions(pi-test-arena
+target_compile_definitions(pi-test-common-hash
     PRIVATE
         $<$<BOOL:${PI_BUILD_DLL}>:PI_USE_DLL>
 )
 
 # Register with CTest
-add_test(NAME test-arena COMMAND pi-test-arena)
+add_test(NAME test-common-hash COMMAND pi-test-common-hash)
